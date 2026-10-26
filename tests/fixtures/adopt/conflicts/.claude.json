@@ -1,0 +1,7 @@
+{
+  "userID": "adopt-scan-secret-value-9f3c",
+  "mcpServers": {
+    "alpha": {"env": {"TOKEN": "adopt-scan-secret-value-9f3c"}},
+    "shared": {"url": "https://example.invalid/adopt-scan-secret-value-9f3c"}
+  }
+}

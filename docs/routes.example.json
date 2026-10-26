@@ -1,0 +1,56 @@
+{
+  "v": 1,
+  "types": {
+    "build": {
+      "mode": "write",
+      "lanes": [
+        {"run": ["coco-route", "grok"], "gate": "grok-build", "xai": true},
+        {"run": ["coco-route", "cursor", "--write", "--model", "composer"], "gate": "cursor"},
+        {"run": ["coco-route", "cursor", "--write", "--model", "grok"], "gate": "cursor", "xai": true},
+        {"run": ["coco-route", "gemini", "--write"], "gate": "gemini"}
+      ]
+    },
+    "review": {
+      "mode": "read",
+      "lanes": [
+        {"run": ["coco-route", "grok", "--read"], "gate": "grok-build", "xai": true},
+        {"run": ["coco-route", "gemini", "--read"], "gate": "gemini"}
+      ]
+    },
+    "security": {
+      "mode": "read",
+      "lanes": [
+        {"run": ["coco-route", "grok", "--read"], "gate": "grok-build", "xai": true}
+      ]
+    },
+    "stamp": {
+      "mode": "write",
+      "lanes": [
+        {"run": ["ocr-stamp", "--provider", "hub", "--model", "deepseek"], "gate": "deepseek"},
+        {"run": ["ocr-stamp", "--provider", "hub", "--model", "GLM-5.3-Flash"], "gate": "glm", "pace": "GLM week"}
+      ]
+    },
+    "read": {
+      "mode": "read",
+      "lanes": [
+        {"run": ["coco-route", "gemini", "--read"], "gate": "gemini"},
+        {"run": ["coco-route", "grok", "--read"], "gate": "grok-build", "xai": true}
+      ]
+    },
+    "text": {
+      "mode": "read",
+      "lanes": [
+        {"run": ["coco-route", "nvidia"], "gate": "nvidia"},
+        {"run": ["coco-route", "ling"], "gate": "ling"},
+        {"run": ["coco-route", "gemini", "--read"], "gate": "gemini"}
+      ]
+    },
+    "image": {
+      "mode": "write",
+      "lanes": [
+        {"run": ["coco-route", "imagine"], "gate": "grok-build", "xai": true}
+      ]
+    }
+  },
+  "glm_pace_max_days_ahead": 1.5
+}

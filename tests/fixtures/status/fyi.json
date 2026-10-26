@@ -1,0 +1,23 @@
+{
+  "nowMs": 1760832000000,
+  "state": {"decisions": [], "bus": {"queue": {"failed": 0}}, "graph": {"lanes": [], "nodes": {}, "messages_24h": 0}},
+  "problems": [
+    {"id": "ci-red:mobile-app#1", "kind": "ci-red", "severity": "high", "owner": "factory-queue", "since": "2026-10-01T00:00:00Z", "headline": "CI red on mobile-app #1", "next_action": "Fix or re-run the failing check.", "evidence": ""},
+    {"id": "ci-red:mobile-app#2", "kind": "ci-red", "severity": "high", "owner": "factory-queue", "since": "2026-10-01T00:00:00Z", "headline": "CI red on mobile-app #2", "next_action": "Fix or re-run the failing check.", "evidence": ""},
+    {"id": "ci-red:mobile-app#3", "kind": "ci-red", "severity": "high", "owner": "factory-queue", "since": "2026-10-01T00:00:00Z", "headline": "CI red on mobile-app #3", "next_action": "Fix or re-run the failing check.", "evidence": ""},
+    {"id": "ci-red:mobile-app#4", "kind": "ci-red", "severity": "high", "owner": "factory-queue", "since": "2026-10-01T00:00:00Z", "headline": "CI red on mobile-app #4", "next_action": "Fix or re-run the failing check.", "evidence": ""},
+    {"id": "ci-red:mobile-app#5", "kind": "ci-red", "severity": "high", "owner": "factory-queue", "since": "2026-10-01T00:00:00Z", "headline": "CI red on mobile-app #5", "next_action": "Fix or re-run the failing check.", "evidence": ""},
+    {"id": "ci-red:mobile-app#6", "kind": "ci-red", "severity": "high", "owner": "factory-queue", "since": "2026-10-01T00:00:00Z", "headline": "CI red on mobile-app #6", "next_action": "Fix or re-run the failing check.", "evidence": ""},
+    {"id": "ci-red:web#1", "kind": "ci-red", "severity": "high", "owner": "factory-queue", "since": "2026-10-02T00:00:00Z", "headline": "CI red on web #1", "next_action": "Fix or re-run the failing check.", "evidence": ""},
+    {"id": "pr-stale:mobile-app#8", "kind": "pr-stale", "severity": "low", "owner": "factory-queue", "since": "2026-09-01T00:00:00Z", "headline": "mobile-app #8 untouched for 9d", "next_action": "Review, merge or close it.", "evidence": ""},
+    {"id": "pr-stale:mobile-app#9", "kind": "pr-stale", "severity": "low", "owner": "factory-queue", "since": "2026-09-02T00:00:00Z", "headline": "mobile-app #9 untouched for 8d", "next_action": "Review, merge or close it.", "evidence": ""},
+    {"id": "alert:abc", "kind": "alert", "severity": "high", "owner": "owner", "since": "2026-10-01T00:00:00Z", "headline": "Please approve", "next_action": "Answer or resolve it.", "evidence": ""}
+  ],
+  "alerts": {
+    "open": [
+      {"ts": 1729000000, "id": "abc", "source": "queue", "kind": "approval-wait", "severity": "needs-owner", "text": "Please approve", "state": "open"},
+      {"ts": 1729000001, "id": "w1", "source": "lab", "kind": "warn", "severity": "warn", "text": "Disk filling", "state": "open"}
+    ],
+    "recent": []
+  }
+}

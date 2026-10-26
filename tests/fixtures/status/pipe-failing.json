@@ -1,0 +1,19 @@
+{
+  "nowMs": 1760832000000,
+  "state": {
+    "decisions": [],
+    "bus": {"queue": {"failed": 0}},
+    "graph": {"lanes": [], "nodes": {}, "messages_24h": 0}
+  },
+  "problems": [
+    {"id": "pipe-failing:cursor", "kind": "pipe-failing", "severity": "high", "owner": "dept-budget",
+     "since": "2026-10-01T00:00:00Z", "headline": "Pipe failing · cursor: last 3 jobs failed", "next_action": "", "evidence": ""},
+    {"id": "job-failed:a", "kind": "job-failed", "severity": "high", "owner": "dept-budget", "pipe": "cursor",
+     "since": "2026-10-01T00:01:00Z", "headline": "Failed job a", "next_action": "", "evidence": ""},
+    {"id": "job-failed:b", "kind": "job-failed", "severity": "high", "owner": "dept-budget", "pipe": "cursor",
+     "since": "2026-10-01T00:02:00Z", "headline": "Failed job b", "next_action": "", "evidence": ""},
+    {"id": "job-failed:c", "kind": "job-failed", "severity": "high", "owner": "dept-budget",
+     "since": "2026-10-01T00:03:00Z", "headline": "Failed job c", "next_action": "", "evidence": ""}
+  ],
+  "alerts": {"open": [], "recent": []}
+}

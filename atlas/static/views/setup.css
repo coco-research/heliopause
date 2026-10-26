@@ -1,0 +1,97 @@
+/* First-run steps. Scoped under .hp-setup so Signal classes stay as they are. */
+
+.hp-setup { min-width: 0; color: var(--ink); font-family: var(--font); }
+.hp-setup .step {
+  margin: 0;
+  font: 500 12px/16px var(--mono);
+  letter-spacing: 0.06em;
+  color: var(--ink-3);
+}
+.hp-setup .eyebrow {
+  margin: 14px 0 0;
+  font: 500 11px/16px var(--mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+.hp-setup h1 {
+  margin: 8px 0 0;
+  font-size: 30px;
+  line-height: 36px;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+}
+.hp-setup .lead, .hp-setup .note, .hp-setup .help { margin: 12px 0 0; max-width: 62ch; }
+.hp-setup .note, .hp-setup .help, .hp-setup .miss { color: var(--ink-2); }
+.hp-setup .cards {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 18px;
+}
+.hp-setup .card, .hp-setup .seat, .hp-setup .row {
+  border: 1px solid var(--line);
+  border-radius: var(--r-ctl);
+  background: var(--surface);
+  padding: 14px;
+}
+.hp-setup .card h2, .hp-setup .role {
+  margin: 0;
+  font: 600 13px/18px var(--mono);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.hp-setup .verb { margin: 6px 0 0; font-size: 18px; line-height: 24px; font-weight: 650; }
+.hp-setup .card p, .hp-setup .who { margin: 6px 0 0; }
+.hp-setup .rows { display: flex; flex-direction: column; gap: 8px; margin-top: 16px; }
+.hp-setup .row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; }
+.hp-setup .row input { width: 18px; height: 18px; }
+.hp-setup .unsup { color: var(--ink-3); }
+.hp-setup .seats { display: grid; gap: 10px; margin-top: 16px; }
+.hp-setup label.field { display: block; margin-top: 16px; font-weight: 600; }
+.hp-setup textarea, .hp-setup select {
+  display: block;
+  width: 100%;
+  margin-top: 6px;
+  min-height: 44px;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-ctl);
+  background: var(--paper);
+  color: var(--ink);
+  font: 15px/22px var(--font);
+}
+.hp-setup textarea { min-height: 76px; resize: vertical; }
+.hp-setup .actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 18px; }
+.hp-setup button, .hp-setup a.btn { min-height: 44px; cursor: pointer; }
+.hp-setup a.btn { display: inline-flex; align-items: center; text-decoration: none; }
+.hp-setup .link {
+  background: none;
+  color: var(--blue-text);
+  border: 0;
+  padding: 0;
+  font: 600 14px/20px var(--font);
+}
+.hp-setup .err { margin: 12px 0 0; color: var(--danger, var(--ink)); }
+.hp-setup .flag { margin: 12px 0 0; }
+.hp-setup .mark { color: var(--amber); }
+.hp-setup .none { margin: 12px 0 0; color: var(--ink-2); }
+.hp-setup .quiet { margin: 12px 0 0; color: var(--ink-3); }
+.hp-setup .bad { margin: 12px 0 0; color: var(--red); }
+.hp-setup a.found-link {
+  display: inline-block;
+  margin-top: 8px;
+  color: var(--blue-text);
+  font-weight: 600;
+  cursor: pointer;
+}
+.hp-setup :focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+
+@media (max-width: 700px) {
+  .hp-setup .cards { grid-template-columns: 1fr; }
+  .hp-setup h1 { font-size: 26px; line-height: 32px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hp-setup, .hp-setup * { transition: none; animation: none; }
+}

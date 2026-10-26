@@ -1,0 +1,10 @@
+{
+  "nowMs": 1760832000000,
+  "state": {
+    "decisions": [],
+    "bus": {"queue": {"failed": 0}},
+    "graph": {"messages_24h": 3}
+  },
+  "problems": [],
+  "alerts": {"open": [], "recent": []}
+}

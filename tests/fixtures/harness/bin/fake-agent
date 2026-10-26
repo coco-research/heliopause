@@ -1,0 +1,73 @@
+#!/usr/bin/env python3
+"""Stand-in for claude and cursor-agent. Reads the prompt on stdin and records argv."""
+
+from __future__ import annotations
+
+import json
+import os
+import signal
+import sys
+import time
+
+
+def main() -> int:
+    mode = os.environ.get("HARNESS_FAKE", "ok")
+    # WHY: installed before stdin is read, so a timeout during startup still needs SIGKILL.
+    if mode == "hang":
+        signal.signal(signal.SIGTERM, signal.SIG_IGN)
+    directory = os.getcwd()
+    stdin = sys.stdin.buffer.read()
+    with open(os.path.join(directory, "stdin"), "wb") as handle:
+        handle.write(stdin)
+    with open(os.path.join(directory, "argv.json"), "w", encoding="utf-8") as handle:
+        json.dump([os.environ.get("FAKE_ARGV0", sys.argv[0])] + sys.argv[1:], handle)
+
+    if mode == "stream":
+        sys.stdout.write("alpha\n")
+        sys.stdout.flush()
+        sys.stdout.write("beta\n")
+        sys.stdout.flush()
+        time.sleep(0.3)
+        with open(os.path.join(directory, "exit_at"), "w", encoding="utf-8") as handle:
+            handle.write(repr(time.time()))
+        return 0
+
+    if mode == "linger":
+        # A grandchild that keeps our stdout open after we exit.
+        if os.fork() == 0:
+            time.sleep(120)
+            os._exit(0)
+        sys.stdout.write("done\n")
+        sys.stdout.flush()
+        return 0
+
+    if mode == "fail":
+        sys.stdout.write("nope\n")
+        sys.stdout.flush()
+        return 7
+
+    if mode == "hang":
+        grandchild = os.fork()
+        if grandchild == 0:
+            signal.signal(signal.SIGTERM, signal.SIG_IGN)
+            for fd in (0, 1, 2):
+                try:
+                    os.close(fd)
+                except OSError:
+                    pass
+            time.sleep(120)
+            os._exit(0)
+        with open(os.path.join(directory, "child.pid"), "w", encoding="utf-8") as handle:
+            handle.write(str(os.getpid()))
+        with open(os.path.join(directory, "grandchild.pid"), "w", encoding="utf-8") as handle:
+            handle.write(str(grandchild))
+        time.sleep(120)
+        return 0
+
+    sys.stdout.write("ok\n")
+    sys.stdout.flush()
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

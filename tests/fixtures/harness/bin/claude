@@ -1,0 +1,3 @@
+#!/bin/sh
+# A regular file, not a symlink: the release zip refuses links.
+FAKE_ARGV0="$0" exec "$(dirname "$0")/fake-agent" "$@"

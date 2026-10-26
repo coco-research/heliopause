@@ -1,0 +1,63 @@
+{
+  "nowMs": 1760832000000,
+  "state": {
+    "decisions": [
+      {
+        "kind": "board",
+        "node": "vp",
+        "status": "needs-owner",
+        "ts": "2026-10-02T00:00:00Z",
+        "headline": "VP waits",
+        "details": ""
+      }
+    ],
+    "bus": {"queue": {"failed": 0}},
+    "graph": {"lanes": [], "nodes": {}, "messages_24h": 0}
+  },
+  "problems": [
+    {
+      "id": "alert:abc",
+      "kind": "alert",
+      "severity": "high",
+      "owner": "owner",
+      "since": "2024-10-15T16:26:40Z",
+      "headline": "Please approve the deploy",
+      "next_action": "Answer or resolve it.",
+      "evidence": "Please approve the deploy"
+    },
+    {
+      "id": "decision-waiting:vp",
+      "kind": "decision-waiting",
+      "severity": "high",
+      "owner": "owner",
+      "since": "2026-10-02T00:00:00Z",
+      "headline": "VP waits on the Owner for 5h",
+      "next_action": "Answer or resolve it.",
+      "evidence": ""
+    }
+  ],
+  "alerts": {
+    "open": [
+      {
+        "ts": 1729000000,
+        "id": "abc",
+        "source": "queue",
+        "kind": "approval-wait",
+        "severity": "needs-owner",
+        "text": "Please approve the deploy",
+        "state": "open"
+      }
+    ],
+    "recent": [
+      {
+        "ts": 1720000000,
+        "id": "gone",
+        "source": "queue",
+        "kind": "ask",
+        "severity": "needs-owner",
+        "text": "already closed",
+        "state": "done"
+      }
+    ]
+  }
+}

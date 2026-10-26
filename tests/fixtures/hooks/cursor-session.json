@@ -1,0 +1,6 @@
+{
+  "hook_event_name": "sessionStart",
+  "cursor_version": "1.7.2",
+  "cwd": "__PLUGIN__",
+  "workspace_roots": ["__FOLDER__"]
+}

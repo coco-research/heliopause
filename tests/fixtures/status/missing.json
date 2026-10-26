@@ -1,0 +1,13 @@
+{
+  "nowMs": 1760832000000,
+  "state": {
+    "decisions": [{"status": "needs-owner"}],
+    "bus": {},
+    "graph": {"nodes": {"a": {}}, "messages_24h": null}
+  },
+  "problems": [null, {"kind": "ci-red", "severity": "high"}, {"owner": "owner"}],
+  "alerts": {
+    "open": [null, {"severity": "needs-owner"}, {"severity": "info", "kind": "info", "text": "FYI only", "source": "lab", "id": "n1", "ts": 1, "state": "open"}],
+    "recent": [{"severity": "needs-owner", "text": "closed ask", "id": "old", "ts": 1, "state": "done"}]
+  }
+}

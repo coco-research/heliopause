@@ -1,0 +1,5 @@
+{
+  "hookEventName": "session_start",
+  "hook_event_name": "SessionStart",
+  "cwd": "__FOLDER__"
+}

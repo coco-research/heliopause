@@ -1,0 +1,32 @@
+# Third-party software
+
+Every bundled third-party or vendored component in this repository, with the
+licence it ships under and where its licence text lives.
+
+| Component | Kind | Licence | Bundled file | Licence text | Upstream |
+| --- | --- | --- | --- | --- | --- |
+| Schibsted Grotesk | Font | SIL OFL 1.1 | `atlas/static/signal/fonts/schibsted-grotesk-latin-wght-normal.woff2` | `atlas/static/signal/fonts/OFL-schibsted-grotesk.txt` | https://github.com/schibsted/schibsted-grotesk |
+| Geist Mono | Font | SIL OFL 1.1 | `atlas/static/signal/fonts/geist-mono-latin-wght-normal.woff2` | `atlas/static/signal/fonts/OFL-geist-mono.txt` | https://github.com/vercel/geist-font |
+
+## Runtime dependencies
+
+None. The server and everything it runs use the Python standard library only.
+
+## Development only
+
+Not shipped, not needed to run the product.
+
+| Component | Licence | Used for |
+| --- | --- | --- |
+| pytest | MIT | Test suite |
+| Node.js | MIT | Test runner only, for tests that exercise the page's JavaScript |
+
+## Licence texts
+
+- SIL Open Font License 1.1: full text is stored next to each font, in the
+  files named above, and is also available at https://scripts.sil.org/OFL
+- MIT License: full text is in this repository's `LICENSE`.
+
+Generated from sbom.cdx.json.
+
+The wordmark SVGs in docs/brand/ embed Schibsted Grotesk; its SIL OFL 1.1 licence is also at docs/brand/OFL-schibsted-grotesk.txt.

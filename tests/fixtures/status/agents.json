@@ -1,0 +1,18 @@
+{
+  "nowMs": 1760832000000,
+  "state": {
+    "decisions": [],
+    "bus": {"queue": {"failed": 0}},
+    "graph": {
+      "lanes": [{"id": "lab", "label": "Lab", "nodes": ["a", "b", "c"]}],
+      "nodes": {
+        "a": {"id": "a", "state": "working", "label": "A"},
+        "b": {"id": "b", "state": "idle", "label": "B"},
+        "c": {"id": "c", "state": "idle", "label": "C"}
+      },
+      "messages_24h": 1
+    }
+  },
+  "problems": [],
+  "alerts": {"open": [], "recent": []}
+}

@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "beta": {
+      "command": "server",
+      "env": {"TOKEN": "adopt-scan-secret-value-9f3c"}
+    }
+  }
+}

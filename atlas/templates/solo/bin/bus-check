@@ -1,0 +1,71 @@
+#!/usr/bin/env bash
+# bus-check: validate a lab folder. Read-only. Exit 0 = pass, 1 = errors found.
+# Checks: layout, board line format, feed headers, inbox/, done/ and briefs/ file headers.
+# Env: LAB_ROOT, else ATLAS_LAB, else the folder that contains this bin/.
+set -u
+ROOT="${LAB_ROOT:-${ATLAS_LAB:-$(cd "$(dirname "$0")/.." && pwd)}}"
+errs=0; warns=0
+err()  { echo "FAIL  $*"; errs=$((errs + 1)); }
+warn() { echo "WARN  $*"; warns=$((warns + 1)); }
+ok()   { echo "ok    $*"; }
+
+for p in BUS.md board.md feed.md inbox "done" briefs; do
+  if [[ -e "$ROOT/$p" ]]; then ok "$p exists"; else err "missing $ROOT/$p"; fi
+done
+
+# Board: "YYYY-MM-DD HH:MM · name · state · headline [· details]". '#' and blank lines are skipped.
+if [[ -f "$ROOT/board.md" ]]; then
+  bad=$(awk -F' · ' '
+    /^#/ || /^[[:space:]]*$/ { next }
+    {
+      n = NF
+      if ($1 !~ /^[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9] [0-9][0-9]:[0-9][0-9]$/) { print NR": bad timestamp"; next }
+      if (n < 4)                                                     { print NR": need name, state, headline"; next }
+      if ($2 == "" || $4 == "")                                      { print NR": empty name or headline"; next }
+      if ($3 !~ /^(working|blocked|done|needs-owner|needs-lead|resolved)$/) { print NR": bad state"; next }
+      if (length($4) > 60)                                           { print NR": headline over 60 chars"; next }
+    }' "$ROOT/board.md")
+  if [[ -z "$bad" ]]; then ok "board.md lines valid"; else while IFS= read -r l; do err "board.md line ${l}"; done <<<"$bad"; fi
+fi
+
+# Feed: entries start with "## YYYY-MM-DD HH:MM · title".
+if [[ -f "$ROOT/feed.md" ]]; then
+  badf=$(grep -nE '^##' "$ROOT/feed.md" | grep -vE '^[0-9]+:## [0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2} · .+' || true)
+  if [[ -z "$badf" ]]; then ok "feed.md headers valid"; else while IFS= read -r l; do err "feed.md line ${l%%:*}: bad entry header"; done <<<"$badf"; fi
+fi
+
+# Queue files: YAML-ish header between two --- lines. id must match the filename.
+hdr() { awk -v k="$2" 'NR==1&&$0!="---"{exit} NR>1&&$0=="---"{exit} NR>1{i=index($0,":"); if(substr($0,1,i-1)==k){v=substr($0,i+1); sub(/^ +/,"",v); print v; exit}}' "$1"; }
+check_dir() { # dir required-keys...
+  local d="$1"; shift
+  local f id k br count=0
+  [[ -d "$ROOT/$d" ]] || return 0
+  for f in "$ROOT/$d"/*.md; do
+    [[ -e "$f" ]] || continue
+    count=$((count + 1))
+    id=$(hdr "$f" id)
+    if [[ -z "$id" ]]; then err "$d/$(basename "$f"): no header with an id"; continue; fi
+    [[ "$id" =~ ^[A-Za-z0-9._-]{1,200}$ ]] || err "$d/$(basename "$f"): bad id characters"
+    [[ "$(basename "$f" .md)" == "$id" || "$(basename "$f" .md)" == "$id.ask" ]] || err "$d/$(basename "$f"): id '$id' does not match the filename"
+    for k in "$@"; do [[ -n "$(hdr "$f" "$k")" ]] || err "$d/$(basename "$f"): missing '$k'"; done
+    if [[ "$d" == briefs ]]; then # the branch is factory/<id>; the id must fit the board headline ("Brief <id>: back")
+      br=$(hdr "$f" branch) # an empty branch is already reported as a missing key
+      [[ -z "$br" || "$br" == "factory/$id" ]] || err "$d/$(basename "$f"): branch must be 'factory/$id'"
+      [[ ${#id} -le 30 ]] || err "$d/$(basename "$f"): id is longer than 30 characters"
+    fi
+  done
+  ok "$d/: $count file(s) checked"
+}
+check_dir inbox id from to type created
+check_dir "done" id from to type created
+check_dir briefs id repo branch model
+
+# An ask with a reply still waiting in inbox/ is stale: say so (not an error).
+for f in "$ROOT"/inbox/*.md; do
+  [[ -e "$f" ]] || continue
+  id=$(basename "$f" .md)
+  [[ -e "$ROOT/done/$id.md" ]] && warn "inbox/$id.md has a reply in done/: close it with bus-ask --close $id"
+done
+
+echo "bus-check: $errs error(s), $warns warning(s)"
+[[ $errs -eq 0 ]]

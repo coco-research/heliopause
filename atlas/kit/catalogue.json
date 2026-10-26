@@ -1,0 +1,469 @@
+[
+  {
+    "edition": "personal-only",
+    "install": "uv",
+    "licence": "MIT",
+    "name": "Agent-Reach",
+    "probe": {
+      "kind": "command",
+      "name": "agent-reach"
+    },
+    "purpose": "Web and social research from the command line.",
+    "sha": "f65526cbaaad3879473acc1ba6dbefd195caf2be",
+    "tag": "v1.5.0"
+  },
+  {
+    "edition": "personal-only",
+    "install": "uv",
+    "licence": "MIT",
+    "name": "ai-memory",
+    "probe": {
+      "kind": "command",
+      "name": "ai-memory"
+    },
+    "purpose": "Local, git-backed team memory with search. It captures prompts and tool calls.",
+    "sha": "7580b74d0fb9d14a6d949dc92f5ea8bb7feb3c83",
+    "tag": "v2.5.2"
+  },
+  {
+    "edition": "reference-only",
+    "install": "never",
+    "licence": "MIT",
+    "name": "ai-website-cloner-template",
+    "probe": null,
+    "purpose": "Structure for cloning a website into code.",
+    "sha": "f50066df3f4bdca057d3b239be6f49f17724bb13",
+    "tag": "v0.5.1"
+  },
+  {
+    "edition": "reference-only",
+    "install": "never",
+    "licence": "none",
+    "name": "anthropic-skills",
+    "probe": null,
+    "purpose": "Example and document skills (skill-creator, frontend-design, pdf, docx) from the model vendor.",
+    "sha": "8a1541c4a3ffa5a20a5a91de0dcf3f0bab1d1ef4",
+    "tag": "-"
+  },
+  {
+    "edition": "work-ok",
+    "install": "git",
+    "licence": "MIT",
+    "name": "archify",
+    "probe": {
+      "kind": "skill",
+      "name": "archify"
+    },
+    "purpose": "Architecture, workflow and sequence diagrams as explorable standalone HTML.",
+    "sha": "2ab3cae7ac2c2a55d7386ca789d03c4fcd31816c",
+    "tag": "v3.0.1"
+  },
+  {
+    "edition": "reference-only",
+    "install": "never",
+    "licence": "none",
+    "name": "awesome-claude-skills",
+    "probe": null,
+    "purpose": "An index of community skills to browse.",
+    "sha": "be2a406907dbc61b73e6827ded415c96139d13a2",
+    "tag": "-"
+  },
+  {
+    "edition": "work-ok",
+    "install": "git",
+    "licence": "MIT",
+    "name": "brag",
+    "probe": {
+      "kind": "skill",
+      "name": "brag"
+    },
+    "purpose": "Launch-video skill with storyboard rubric; only if you make video.",
+    "sha": "57ce4c9bb912f01a0078b154318bf67c5cbf780f",
+    "tag": "v0.3.0"
+  },
+  {
+    "edition": "reference-only",
+    "install": "never",
+    "licence": "none",
+    "name": "cartographer",
+    "probe": null,
+    "purpose": "Codebase maps for agents.",
+    "sha": "a62d16981b6aa1f5f6ef56701c49b81a16a8e30a",
+    "tag": "-"
+  },
+  {
+    "edition": "personal-only",
+    "install": "uv",
+    "licence": "Apache-2.0",
+    "name": "cognee",
+    "probe": {
+      "kind": "command",
+      "name": "cognee"
+    },
+    "purpose": "Knowledge-graph memory for agents.",
+    "sha": "ba3631f2ed363a6ea50d649c34c56885af6b36fe",
+    "tag": "v1.6.2"
+  },
+  {
+    "edition": "work-ok",
+    "install": "uv",
+    "licence": "Apache-2.0",
+    "name": "crawl4ai",
+    "probe": {
+      "kind": "command",
+      "name": "crwl"
+    },
+    "purpose": "Web crawling and extraction for LLM pipelines.",
+    "sha": "133e1d92e37885dfccc03ea2e3687d06c98b7ceb",
+    "tag": "v0.9.4"
+  },
+  {
+    "edition": "personal-only",
+    "install": "uv",
+    "licence": "MIT",
+    "name": "deja-vu",
+    "probe": {
+      "kind": "command",
+      "name": "deja-vu"
+    },
+    "purpose": "Recall of past agent sessions.",
+    "sha": "bb93e229a5e2c2ccd1fe4444479e7ea98d765600",
+    "tag": "v0.21.4"
+  },
+  {
+    "edition": "work-ok",
+    "install": "git",
+    "licence": "MIT",
+    "name": "diagram-design",
+    "probe": {
+      "kind": "skill",
+      "name": "diagram-design"
+    },
+    "purpose": "Architecture and flow diagrams as standalone HTML/SVG.",
+    "sha": "f903933a534ba92cde1c85a28186267b3a317bb2",
+    "tag": "-"
+  },
+  {
+    "edition": "reference-only",
+    "install": "never",
+    "licence": "MIT",
+    "name": "ECC",
+    "probe": null,
+    "purpose": "Large collection of agent skills, commands and rules.",
+    "sha": "c05b2d6614f62f6db0047669aa4eefb223d478f9",
+    "tag": "v2.2.3"
+  },
+  {
+    "edition": "work-ok",
+    "install": "git",
+    "licence": "MIT",
+    "name": "get-shit-done",
+    "probe": {
+      "kind": "skill",
+      "name": "get-shit-done"
+    },
+    "purpose": "Spec-driven planning and execution workflow (plan a phase, execute, verify) as Claude Code skills.",
+    "sha": "7dfeb7ad8acbd6febd2c8c6cf7d3dcb7d1aeb7b9",
+    "tag": "v1.42.3"
+  },
+  {
+    "edition": "work-ok",
+    "install": "brew",
+    "licence": "MIT",
+    "name": "github-cli",
+    "probe": {
+      "kind": "command",
+      "name": "gh"
+    },
+    "purpose": "The `gh` command-line tool for PRs and issues.",
+    "sha": "fc4b137cdef0a6bd28fd461b7cf9c84a5812a8cd",
+    "tag": "v2.102.0"
+  },
+  {
+    "edition": "work-ok",
+    "install": "uv",
+    "licence": "Apache-2.0",
+    "name": "graphify",
+    "probe": {
+      "kind": "command",
+      "name": "graphify"
+    },
+    "purpose": "Turns code or documents into a queryable knowledge graph.",
+    "sha": "e10df08877f8819a625a1afa38c3297a31fda296",
+    "tag": "v0.9.74"
+  },
+  {
+    "edition": "personal-only",
+    "install": "npm",
+    "licence": "Apache-2.0",
+    "name": "grok-build",
+    "probe": {
+      "kind": "command",
+      "name": "grok"
+    },
+    "purpose": "A terminal coding agent from another model vendor.",
+    "sha": "2bdd1d6a6369de0e8c68132ea4539e9abd9e14a8",
+    "tag": "-"
+  },
+  {
+    "edition": "work-ok",
+    "install": "git",
+    "licence": "MIT",
+    "name": "humanizer",
+    "probe": {
+      "kind": "skill",
+      "name": "humanizer"
+    },
+    "purpose": "Detects and rewrites signs of AI-generated text, as a skill.",
+    "sha": "225a6f39ac85f76ee48dbad772ea4abe4ed6c9d8",
+    "tag": "v3.1.0"
+  },
+  {
+    "edition": "work-ok",
+    "install": "npm",
+    "licence": "Apache-2.0",
+    "name": "hyperframes",
+    "probe": {
+      "kind": "command",
+      "name": "hyperframes"
+    },
+    "purpose": "HTML-to-video motion graphics; only if you make video.",
+    "sha": "aca4bc2f492c2b038d87c875cd7d53a80dfb4bb1",
+    "tag": "v0.8.113"
+  },
+  {
+    "edition": "reference-only",
+    "install": "never",
+    "licence": "none",
+    "name": "karpathy-skills",
+    "probe": null,
+    "purpose": "Coding-behaviour guidelines (think first, simplicity, surgical changes, goal-driven).",
+    "sha": "2c606141936f1eeef17fa3043a72095b4765b9c2",
+    "tag": "-"
+  },
+  {
+    "edition": "work-ok",
+    "install": "uv",
+    "licence": "Apache-2.0",
+    "name": "llm-verify",
+    "probe": {
+      "kind": "command",
+      "name": "llm-verify"
+    },
+    "purpose": "Cross-checks an answer with a second model pass.",
+    "sha": "38821dd14918659beb34c9e0484f56f3bca46134",
+    "tag": "v0.5.2"
+  },
+  {
+    "edition": "reference-only",
+    "install": "never",
+    "licence": "MIT",
+    "name": "MetaGPT",
+    "probe": null,
+    "purpose": "Reference for the gated product sequence (PRD, architecture, plan, build). Read-only inspiration; do not run its CLI.",
+    "sha": "c036574507e7616c02512e7c8ad88dd847783afa",
+    "tag": "v0.8.1"
+  },
+  {
+    "edition": "work-ok",
+    "install": "uv",
+    "licence": "Apache-2.0",
+    "name": "open-code-review",
+    "probe": {
+      "kind": "command",
+      "name": "ocr"
+    },
+    "purpose": "The `ocr` command-line reviewer: review a diff before commit.",
+    "sha": "a758d9cbfb689937c7857ad64b2dd66adb58c0c2",
+    "tag": "v1.12.11"
+  },
+  {
+    "edition": "work-ok",
+    "install": "git",
+    "licence": "Apache-2.0",
+    "name": "openrig",
+    "probe": {
+      "kind": "skill",
+      "name": "openrig"
+    },
+    "purpose": "Agent teams driven from Claude Code.",
+    "sha": "6342862884a7146cbd0797e91399b3704025f161",
+    "tag": "v0.6.4"
+  },
+  {
+    "edition": "personal-only",
+    "install": "npm",
+    "licence": "MIT",
+    "name": "pi",
+    "probe": {
+      "kind": "command",
+      "name": "pi"
+    },
+    "purpose": "A terminal coding agent that can use other model providers.",
+    "sha": "a13d35a742c6ef8462812a28fbe1d8c8b7431c32",
+    "tag": "v1.0.0"
+  },
+  {
+    "edition": "work-ok",
+    "install": "git",
+    "licence": "MIT",
+    "name": "ponytail",
+    "probe": {
+      "kind": "skill",
+      "name": "ponytail"
+    },
+    "purpose": "The 'laziest senior dev' coding ladder as a skill: reuse before writing, smallest working change.",
+    "sha": "c6ce46179874ea7368da0eb9e67c1ad5c10f08bc",
+    "tag": "v4.10.1"
+  },
+  {
+    "edition": "reference-only",
+    "install": "never",
+    "licence": "NOASSERTION",
+    "name": "remotion",
+    "probe": null,
+    "purpose": "Programmatic video in React; only if you make video.",
+    "sha": "c320056a980972de109ef27a40bede9660a46931",
+    "tag": "v4.0.532"
+  },
+  {
+    "edition": "reference-only",
+    "install": "never",
+    "licence": "AGPL-3.0",
+    "name": "repowise",
+    "probe": null,
+    "purpose": "Local codebase intelligence: health scores, change risk, graph-aware context.",
+    "sha": "eaf9fb2638af0983a6ea70174abe2b9abe4c2c0c",
+    "tag": "v0.54.0"
+  },
+  {
+    "edition": "work-ok",
+    "install": "brew",
+    "licence": "Apache-2.0",
+    "name": "ripwire",
+    "probe": {
+      "kind": "command",
+      "name": "ripwire"
+    },
+    "purpose": "Local context search over a codebase, to find the right files before editing.",
+    "sha": "3fcd515ffe129319d4fcbe69efb9deb182f4c890",
+    "tag": "v0.6.5"
+  },
+  {
+    "edition": "work-ok",
+    "install": "git",
+    "licence": "MIT",
+    "name": "scientific-agent-skills",
+    "probe": {
+      "kind": "skill",
+      "name": "scientific-agent-skills"
+    },
+    "purpose": "Skills for scientific and data-analysis tasks.",
+    "sha": "526ebce143bc326f44471554e33d66a19c840360",
+    "tag": "v2.72.0"
+  },
+  {
+    "edition": "work-ok",
+    "install": "git",
+    "licence": "MIT",
+    "name": "scroll-world",
+    "probe": {
+      "kind": "skill",
+      "name": "scroll-world"
+    },
+    "purpose": "Scroll-driven storytelling pages; only if you build such pages.",
+    "sha": "71cc36d3bb150248ae36a2c552f9cbf88802a79c",
+    "tag": "-"
+  },
+  {
+    "edition": "work-ok",
+    "install": "git",
+    "licence": "MIT",
+    "name": "superpowers",
+    "probe": {
+      "kind": "skill",
+      "name": "superpowers"
+    },
+    "purpose": "Engineering-discipline skills: plans, systematic debugging, test-driven development, verification.",
+    "sha": "8ca22dba9a94f28898bbce59f2537ff4d87c747d",
+    "tag": "v6.4.2"
+  },
+  {
+    "edition": "work-ok",
+    "install": "git",
+    "licence": "MIT",
+    "name": "taste-skill",
+    "probe": {
+      "kind": "skill",
+      "name": "taste-skill"
+    },
+    "purpose": "Front-end design-taste skills (avoid generic UI).",
+    "sha": "ce26fc25c0e5e8cab638f883de62d9a86ee5e45b",
+    "tag": "-"
+  },
+  {
+    "edition": "work-ok",
+    "install": "git",
+    "licence": "MIT",
+    "name": "ui-ux-pro-max-skill",
+    "probe": {
+      "kind": "skill",
+      "name": "ui-ux-pro-max-skill"
+    },
+    "purpose": "UI/UX design guidance skill: styles, palettes, type, accessibility checks.",
+    "sha": "a38d04c3d5c298c851dbe5e6ee1965ee3de42cb5",
+    "tag": "v2.15.0"
+  },
+  {
+    "edition": "work-ok",
+    "install": "brew",
+    "licence": "Apache-2.0",
+    "name": "uv",
+    "probe": {
+      "kind": "command",
+      "name": "uv"
+    },
+    "purpose": "Fast Python package and tool manager; installs in user space.",
+    "sha": "70fe1196a546e49148a73b1c592b2f74c33af80e",
+    "tag": "0.12.22"
+  },
+  {
+    "edition": "work-ok",
+    "install": "npm",
+    "licence": "Apache-2.0",
+    "name": "vibe-kanban",
+    "probe": {
+      "kind": "command",
+      "name": "vibe-kanban"
+    },
+    "purpose": "Task board for coding agents.",
+    "sha": "4deb7eca8f381f7cbc1f9d15515a9ab8f8009053",
+    "tag": "v0.1.44-20260424091429"
+  },
+  {
+    "edition": "work-ok",
+    "install": "git",
+    "licence": "MIT",
+    "name": "visual-explainer",
+    "probe": {
+      "kind": "skill",
+      "name": "visual-explainer"
+    },
+    "purpose": "Turns plans, diffs and diagrams into self-contained HTML pages.",
+    "sha": "6376b7727bb9b1d5d37ad3e4d96d969a6499917b",
+    "tag": "v0.12.0"
+  },
+  {
+    "edition": "work-ok",
+    "install": "git",
+    "licence": "MIT",
+    "name": "web-interface-guidelines",
+    "probe": {
+      "kind": "skill",
+      "name": "web-interface-guidelines"
+    },
+    "purpose": "Review UI code against a written set of web interface guidelines.",
+    "sha": "e3d624baaf29dc1fc645aff3e38f03e564d2d6b1",
+    "tag": "-"
+  }
+]

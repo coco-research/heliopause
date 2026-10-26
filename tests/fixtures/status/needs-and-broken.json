@@ -1,0 +1,56 @@
+{
+  "nowMs": 1760832000000,
+  "state": {
+    "decisions": [
+      {
+        "kind": "board",
+        "node": "vp",
+        "status": "needs-owner",
+        "ts": "2026-10-02T00:00:00Z",
+        "headline": "VP waits",
+        "details": ""
+      },
+      {
+        "kind": "board",
+        "node": "design",
+        "status": "needs-owner",
+        "ts": "2026-10-03T00:00:00Z",
+        "headline": "Design waits",
+        "details": ""
+      },
+      {
+        "kind": "board",
+        "node": "eng",
+        "status": "needs-vp",
+        "ts": "2026-10-01T00:00:00Z",
+        "headline": "Waiting on VP",
+        "details": ""
+      }
+    ],
+    "bus": {"queue": {"failed": 1}},
+    "graph": {
+      "lanes": [{"id": "lab", "label": "Lab", "nodes": ["vp", "queue"]}],
+      "nodes": {
+        "vp": {"id": "vp", "state": "blocked", "label": "VP"},
+        "queue": {"id": "queue", "state": "working", "label": "Queue Factory"},
+        "ghost": {"id": "ghost", "state": "blocked", "label": "Ghost"}
+      },
+      "messages_24h": 4
+    }
+  },
+  "problems": [],
+  "alerts": {
+    "open": [
+      {
+        "ts": 1729000000,
+        "id": "a1",
+        "source": "hq",
+        "kind": "ask",
+        "severity": "needs-owner",
+        "text": "Sign this",
+        "state": "open"
+      }
+    ],
+    "recent": []
+  }
+}

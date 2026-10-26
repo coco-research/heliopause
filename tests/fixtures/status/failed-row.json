@@ -1,0 +1,17 @@
+{
+  "nowMs": 1760832000000,
+  "state": {"decisions": [], "bus": {}},
+  "problems": [
+    {
+      "id": "job-failed:job-9",
+      "kind": "job-failed",
+      "severity": "high",
+      "owner": "factory-queue",
+      "since": "2026-10-01T00:00:00Z",
+      "headline": "1 factory job failed",
+      "next_action": "Re-run or withdraw the job.",
+      "evidence": ""
+    }
+  ],
+  "alerts": {"open": [], "recent": []}
+}

@@ -1,0 +1,16 @@
+# atlas.lock
+# Allow-list export: catalogue tools and versions, plugin names and versions,
+# skill and agent names, MCP server names, listed repo checkouts, lab settings.
+{
+  "agents": [],
+  "atlas": {"profile": "work"},
+  "mcp": [],
+  "plugins": [],
+  "repos": [],
+  "skills": ["ponytail"],
+  "tools": [
+    {"name": "github-cli", "version": "2.102.0"},
+    {"name": "ponytail", "version": "9.9.9"},
+    {"name": "uv", "version": "0.12.22"}
+  ]
+}

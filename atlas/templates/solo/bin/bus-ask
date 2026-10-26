@@ -1,0 +1,45 @@
+#!/usr/bin/env bash
+# bus-ask: write an ask into inbox/ (atomic), or close an answered one.
+#   bus-ask --to <who> --type <decision|review|fyi|idea|job> [--priority low|normal|high] [--from <name>] "<title>" < body
+#   bus-ask --close <id>      move inbox/<id>.md to done/<id>.ask.md (the reply is done/<id>.md)
+# Env: LAB_ROOT (default ~/atlas-lab).
+set -u
+ROOT="${LAB_ROOT:-$HOME/atlas-lab}"
+die() { echo "bus-ask: $*" >&2; exit 2; }
+[[ -d "$ROOT/inbox" ]] || die "no inbox at $ROOT/inbox"
+
+if [[ "${1:-}" == "--close" ]]; then
+  id="${2:-}"; [[ "$id" =~ ^[A-Za-z0-9._-]{1,200}$ ]] || die "bad id"
+  [[ -f "$ROOT/inbox/$id.md" ]] || die "no such ask: $id"
+  [[ -d "$ROOT/done" ]] || die "no done/ folder at $ROOT/done"
+  [[ ! -e "$ROOT/done/$id.ask.md" ]] || die "done/$id.ask.md already exists"
+  mv "$ROOT/inbox/$id.md" "$ROOT/done/$id.ask.md" || die "could not close $id"
+  echo "closed $id"; exit 0
+fi
+
+to=""; type=""; prio="normal"; from="${LAB_AGENT_NAME:-lead}"
+while [[ "${1:-}" == --* ]]; do
+  case "$1" in
+    --to|--type|--priority|--from)
+      [[ -n "${2:-}" ]] || die "$1 needs a value"
+      case "$1" in --to) to="$2";; --type) type="$2";; --priority) prio="$2";; --from) from="$2";; esac
+      shift 2;;
+    *) die "unknown flag $1";;
+  esac
+done
+title="${1:-}"; [[ -n "$to" && -n "$type" && -n "$title" && -n "$from" ]] || die 'usage: bus-ask --to X --type T [--from F] "<title>" < body'
+case "$type" in decision|review|fyi|idea|job) ;; *) die "bad type '$type'";; esac
+case "$prio" in low|normal|high) ;; *) die "bad priority '$prio'";; esac
+for v in "$to" "$from" "$title"; do [[ "$v" != *$'\n'* ]] || die "no newlines in fields"; done
+stamp=$(date '+%Y%m%d-%H%M%S'); n=0
+while :; do
+  id="ask-$stamp-$n"; [[ -e "$ROOT/inbox/$id.md" || -e "$ROOT/done/$id.md" || -e "$ROOT/done/$id.ask.md" ]] || break; n=$((n + 1))
+done
+tmp="$ROOT/inbox/.$id.tmp"
+{
+  printf -- '---\nid: %s\nfrom: %s\nto: %s\ntype: %s\npriority: %s\ncreated: %s\ntitle: %s\n---\n' \
+    "$id" "$from" "$to" "$type" "$prio" "$(date '+%Y-%m-%d %H:%M')" "$title"
+  [[ -t 0 ]] || cat
+} > "$tmp" || { rm -f "$tmp"; die "cannot write $ROOT/inbox/$id.md"; }
+mv "$tmp" "$ROOT/inbox/$id.md" || { rm -f "$tmp"; die "cannot write $ROOT/inbox/$id.md"; }
+echo "$ROOT/inbox/$id.md"

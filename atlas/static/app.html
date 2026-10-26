@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Heliopause</title>
+<script src="/app.js"></script>
+<link rel="stylesheet" href="/signal/fonts.css">
+<link rel="stylesheet" href="/signal/layout.css">
+<link rel="stylesheet" href="/signal/signal.css">
+<link rel="stylesheet" href="/signal/color.css">
+<link rel="stylesheet" href="/app.css">
+</head>
+<body>
+<div class="hp app">
+  <header class="ptop">
+    <span class="wm">Heliopause</span>
+    <span class="live" id="hp-live-narrow">Live</span>
+  </header>
+  <aside class="rail">
+    <div class="wm">Heliopause</div>
+    <nav class="nav" aria-label="Heliopause">
+      <a class="nav-item" href="#/now" data-view="now" aria-current="page"><span class="l"><svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="9" cy="9" r="6.5"/><circle cx="9" cy="9" r="2" fill="currentColor" stroke="none"/></svg>Now</span><span class="badge" id="hp-now-badge" hidden></span></a>
+      <a class="nav-item" href="#/messages" data-view="messages"><span class="l"><svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 4.5h12M3 9h12M3 13.5h7"/></svg>Messages</span></a>
+      <a class="nav-item" href="#/today" data-view="today"><span class="l"><svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" aria-hidden="true"><rect x="2.5" y="3.5" width="13" height="12" rx="2.5"/><path d="M2.5 7.5h13M6 2v3M12 2v3"/></svg>Today</span></a>
+      <a class="nav-item" href="#/repos" data-view="repos"><span class="l"><svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 5a1.5 1.5 0 0 1 1.5-1.5h3.2l1.6 2h5.2A1.5 1.5 0 0 1 15.5 7v6.5A1.5 1.5 0 0 1 14 15H4a1.5 1.5 0 0 1-1.5-1.5z"/></svg>Repos</span></a>
+    </nav>
+    <div class="rail-foot">
+      <div class="theme" role="group" aria-label="Theme">
+        <button type="button" data-theme-mode="light" aria-pressed="false">Light</button>
+        <button type="button" data-theme-mode="dark" aria-pressed="false">Dark</button>
+        <button type="button" data-theme-mode="system" aria-pressed="true">System</button>
+      </div>
+      <span class="p" id="hp-priv">Heliopause sends nothing off this machine.</span>
+      <span class="a" id="hp-addr"></span>
+    </div>
+  </aside>
+  <main class="main" id="hp-main">
+    <div id="hp-view"></div>
+    <p class="mid-priv" id="hp-mid-priv">Heliopause sends nothing off this machine.</p>
+  </main>
+</div>
+</body>
+</html>

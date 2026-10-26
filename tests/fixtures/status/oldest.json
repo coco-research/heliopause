@@ -1,0 +1,60 @@
+{
+  "nowMs": 1760832000000,
+  "state": {
+    "decisions": [
+      {
+        "kind": "board",
+        "node": "design",
+        "status": "needs-owner",
+        "ts": "2026-10-03T00:00:00Z",
+        "headline": "newest",
+        "details": ""
+      },
+      {
+        "kind": "board",
+        "node": "vp",
+        "status": "needs-owner",
+        "ts": "2025-06-01T00:00:00Z",
+        "headline": "middle",
+        "details": ""
+      },
+      {
+        "kind": "board",
+        "node": null,
+        "name": "untimed-part",
+        "status": "needs-owner",
+        "ts": null,
+        "headline": "untimed",
+        "details": ""
+      }
+    ],
+    "bus": {"queue": {"failed": 0}},
+    "graph": {"lanes": [], "nodes": {}, "messages_24h": 0}
+  },
+  "problems": [
+    {
+      "id": "disk-low:home",
+      "kind": "disk-low",
+      "severity": "high",
+      "owner": "owner",
+      "since": "2026-09-01T00:00:00Z",
+      "headline": "late",
+      "next_action": "Free space.",
+      "evidence": ""
+    }
+  ],
+  "alerts": {
+    "open": [
+      {
+        "ts": 1728000000,
+        "id": "old",
+        "source": "queue",
+        "kind": "ask",
+        "severity": "needs-owner",
+        "text": "oldest",
+        "state": "open"
+      }
+    ],
+    "recent": []
+  }
+}

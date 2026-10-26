@@ -1,0 +1,47 @@
+{
+  "generated": "2026-10-22T14:24:00Z",
+  "sentence": "2 asks are waiting on you, and 1 job failed.",
+  "counts": {"messages_today": 8, "tools_connected": 3, "repos": 2},
+  "needs_you": [
+    {
+      "id": "m-ask-1",
+      "from": {"role": "lab", "tool": "claude"},
+      "to": {"role": "hq"},
+      "kind": "ask",
+      "summary": "Merge PR #42: rate limit on /login",
+      "repo": "api-server",
+      "state": "sent",
+      "reply_to": null,
+      "ts": "2026-10-22T14:18:00Z",
+      "waiting_on_you": true,
+      "thread": "m-ask-1"
+    }
+  ],
+  "seats": {
+    "hq": [
+      {"name": "You", "tool": null, "state": "needs_you", "since": "2026-10-22T14:18:00Z", "repo": null, "waiting": 1}
+    ],
+    "lab": [
+      {"name": "Planner", "tool": "claude", "state": "working", "since": "2026-10-22T14:20:00Z", "repo": "web-app", "waiting": 0}
+    ],
+    "factory": [
+      {"name": "Builder", "tool": "cursor", "state": "idle", "since": "2026-10-22T14:16:00Z", "repo": "api-server", "waiting": 1}
+    ]
+  },
+  "moving": [
+    {
+      "id": "m-job-1",
+      "from": {"role": "lab", "tool": "claude"},
+      "to": {"role": "factory"},
+      "kind": "job",
+      "summary": "Update the README install steps",
+      "repo": "api-server",
+      "state": "picked_up",
+      "reply_to": null,
+      "ts": "2026-10-22T14:16:00Z",
+      "waiting_on_you": false,
+      "thread": "m-job-1"
+    }
+  ],
+  "github": true
+}

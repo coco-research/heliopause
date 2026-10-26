@@ -1,0 +1,21 @@
+{
+  "nowMs": 1760832000000,
+  "state": {
+    "decisions": [],
+    "bus": {"queue": {"failed": 0}},
+    "graph": {"lanes": [], "nodes": {}, "messages_24h": 0}
+  },
+  "problems": [
+    {
+      "id": "ci-red:mobile-app#1",
+      "kind": "ci-red",
+      "severity": "high",
+      "owner": "factory-queue",
+      "since": "2026-10-01T00:00:00Z",
+      "headline": "CI red on mobile-app #1",
+      "next_action": "Fix or re-run the failing check.",
+      "evidence": ""
+    }
+  ],
+  "alerts": {"open": [], "recent": []}
+}

@@ -1,0 +1,19 @@
+{
+  "states": {
+    "needs-boss": "needs-owner"
+  },
+  "ids": {
+    "boss": "owner",
+    "factory-pi": "factory-queue",
+    "pi": "factory-queue"
+  },
+  "pools": {
+    "default-pool": "oldpool"
+  },
+  "dirs": {
+    "queue": "pi"
+  },
+  "lanes": {
+    "pi": "queue"
+  }
+}

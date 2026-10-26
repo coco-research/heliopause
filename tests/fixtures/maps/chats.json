@@ -1,0 +1,17 @@
+{
+  "": "vp",
+  "ops-departments-engineering": "dept-engineering",
+  "ops-departments-design": "dept-design",
+  "ops-departments-research": "dept-research",
+  "ops-departments-budget": "dept-budget",
+  "ops-departments-repo-office": "dept-repo-office",
+  "ops-departments-lab-ops": "dept-lab-ops",
+  "products-coco-courier": "brain-courier",
+  "products-coco": "brain-si",
+  "products-harbor-ng": "brain-teamsng",
+  "products-connect-m0": "brain-connect-m0",
+  "products-coco-voice": "brain-voice",
+  "products-coco-voice-repo": "brain-voice",
+  "products-coco-atlas": "brain-atlas",
+  "products-keyring": "brain-keyring"
+}

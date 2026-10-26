@@ -1,0 +1,15 @@
+[project]
+name = "coco-atlas"
+version = "0.7.1"
+description = "Local live control room for an agentic lab."
+readme = "README.md"
+requires-python = ">=3.9"
+license = {file = "LICENSE"}
+dependencies = []
+
+[project.optional-dependencies]
+dev = ["pytest"]
+
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"

@@ -1,0 +1,79 @@
+#!/usr/bin/env python3
+from __future__ import annotations
+import sys; sys.dont_write_bytecode = True
+
+# ponytail: loopback only (127.0.0.1 or localhost) with a 3s timeout; no retries.
+import json
+import os
+from pathlib import Path
+import urllib.error
+import urllib.parse
+import urllib.request
+
+
+class _NoRedirect(urllib.request.HTTPRedirectHandler):
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        return None
+
+
+def main() -> int:
+    if len(sys.argv) not in (4, 5) or sys.argv[1] not in ("info", "warn", "needs-owner"):
+        sys.stderr.write("usage: atlas-alert <severity> <kind> <text> [link]\n")
+        return 2
+
+    raw_url = os.environ.get("ATLAS_URL") or "http://127.0.0.1:4300"
+    try:  # .hostname parses too, so it stays inside the try
+        parts = urllib.parse.urlsplit(raw_url)
+        allowed = parts.scheme == "http" and parts.hostname in ("127.0.0.1", "localhost")
+    except ValueError:  # a malformed URL is never loopback
+        allowed = False
+    if not allowed:
+        sys.stderr.write("atlas-alert: ATLAS_URL must be http on 127.0.0.1 or localhost; not sent\n")
+        return 0
+
+    token = ""
+    try:
+        token_file = os.environ.get("ATLAS_TOKEN_FILE") or "~/.atlas/token"
+        token = Path(os.path.expanduser(token_file)).read_text(encoding="utf-8").strip()
+        # A control char (CR/LF, tab, NUL) would split the headers or land in an error message; non-ASCII cannot be sent.
+        if not token or not token.isascii() or not token.isprintable():
+            raise ValueError("invalid token file")
+
+        payload = {
+            "source": os.environ.get("ATLAS_ALERT_SOURCE") or "lab",
+            "kind": sys.argv[2],
+            "severity": sys.argv[1],
+            "text": sys.argv[3],
+        }
+        if len(sys.argv) == 5:
+            payload["link"] = sys.argv[4]
+
+        req = urllib.request.Request(
+            f"{raw_url.rstrip('/')}/api/alerts",
+            data=json.dumps(payload).encode("utf-8"),
+            headers={"Content-Type": "application/json", "X-Atlas-Token": token},
+            method="POST",
+        )
+        # WHY: a redirect would carry the token off this machine (same rule as atlas/cli.py).
+        opener = urllib.request.build_opener(urllib.request.ProxyHandler({}), _NoRedirect)
+        with opener.open(req, timeout=3):
+            pass
+    except urllib.error.HTTPError as err:
+        # The server says why it refused (bad source, bad text, ...); show that, never the token.
+        try:
+            reason = str(json.loads(err.read() or b"{}").get("error", ""))
+        except (ValueError, AttributeError, OSError):
+            reason = ""
+        if token and token in reason:
+            reason = reason.replace(token, "[REDACTED]")
+        sys.stderr.write(f"atlas-alert: HTTP {err.code} {reason}".rstrip() + "\n")
+    except Exception as err:
+        msg = str(err)
+        if token and token in msg:
+            msg = msg.replace(token, "[REDACTED]")
+        sys.stderr.write(f"atlas-alert: {msg}\n")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

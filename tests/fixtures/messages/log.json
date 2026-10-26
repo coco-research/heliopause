@@ -1,0 +1,63 @@
+{
+  "generated": "2026-10-22T18:00:00Z",
+  "messages": [
+    {
+      "id": "m-aaaaaaaaaaaa",
+      "from": {"role": "lab", "tool": "planner", "name": "Planner"},
+      "to": {"role": "hq", "name": "You"},
+      "kind": "ask",
+      "summary": "<b>approve the plan</b>",
+      "repo": "api-server",
+      "state": "sent",
+      "reply_to": null,
+      "ts": "2026-10-22T17:40:00Z",
+      "waiting_on_you": true,
+      "thread": "m-aaaaaaaaaaaa"
+    },
+    {
+      "id": "m-bbbbbbbbbbbb",
+      "short_id": "j-1042",
+      "from": {"role": "lab", "tool": "planner", "name": "Planner"},
+      "to": {"role": "factory", "tool": "Cursor", "name": "Builder"},
+      "kind": "job",
+      "summary": "{job text}",
+      "repo": "api-server",
+      "state": "sent",
+      "reply_to": null,
+      "ts": "2026-10-22T17:19:00Z",
+      "checks": {"tests": "pass", "review": "none", "ci": "none"},
+      "waiting_on_you": false,
+      "thread": "m-bbbbbbbbbbbb"
+    }
+  ],
+  "thread": [
+    {
+      "id": "m-bbbbbbbbbbbb",
+      "short_id": "j-1042",
+      "from": {"role": "lab", "tool": "planner", "name": "Planner"},
+      "to": {"role": "factory", "tool": "Cursor", "name": "Builder"},
+      "kind": "job",
+      "summary": "{job text}",
+      "repo": "api-server",
+      "state": "sent",
+      "reply_to": null,
+      "ts": "2026-10-22T17:19:00Z",
+      "checks": {"tests": "pass", "review": "none", "ci": "none"},
+      "waiting_on_you": false,
+      "thread": "m-bbbbbbbbbbbb"
+    },
+    {
+      "id": "m-cccccccccccc",
+      "from": {"role": "factory", "tool": "Cursor", "name": "Builder"},
+      "to": {"role": "lab", "name": "Planner"},
+      "kind": "report",
+      "summary": "2 of 14 tests failed",
+      "repo": "api-server",
+      "state": "sent",
+      "reply_to": "m-bbbbbbbbbbbb",
+      "ts": "2026-10-22T17:30:00Z",
+      "waiting_on_you": false,
+      "thread": "m-bbbbbbbbbbbb"
+    }
+  ]
+}

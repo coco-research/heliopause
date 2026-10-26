@@ -1,0 +1,19 @@
+{
+  "v": 1,
+  "owner": "Owner",
+  "tz": "America/New_York",
+  "nodes": [
+    {"id": "hq-assistant", "label": "HQ Assistant", "role": "hq"},
+    {"id": "product-a", "label": "Product A", "role": "lab"},
+    {"id": "product-b", "label": "Product B", "role": "lab"},
+    {"id": "product-c", "label": "Product C", "role": "lab"},
+    {"id": "product-d", "label": "Product D", "role": "lab"},
+    {"id": "product-e", "label": "Product E", "role": "lab"},
+    {"id": "dept-design", "label": "Dept: Design", "role": "lab"},
+    {"id": "dept-research", "label": "Dept: Research", "role": "lab"},
+    {"id": "dept-ops", "label": "Dept: Ops", "role": "lab"},
+    {"id": "factory-a", "label": "Factory A", "role": "factory"},
+    {"id": "factory-b", "label": "Factory B", "role": "factory"},
+    {"id": "factory-c", "label": "Factory C", "role": "factory"}
+  ]
+}

@@ -1,0 +1,19 @@
+{
+  "nowMs": 1760832000000,
+  "state": {
+    "decisions": [
+      {
+        "kind": "board",
+        "node": "vp",
+        "status": "needs-owner",
+        "ts": "2026-10-02T00:00:00Z",
+        "headline": "VP waits",
+        "details": ""
+      }
+    ],
+    "bus": {"queue": {"failed": 0}},
+    "graph": {"lanes": [], "nodes": {}, "messages_24h": 0}
+  },
+  "problems": [],
+  "alerts": {"open": [], "recent": []}
+}

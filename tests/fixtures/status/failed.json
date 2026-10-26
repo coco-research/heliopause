@@ -1,0 +1,21 @@
+{
+  "nowMs": 1760832000000,
+  "state": {
+    "decisions": [],
+    "bus": {"queue": {"failed": 2, "inbox": 0, "running": 0, "failed_items": []}},
+    "graph": {"lanes": [], "nodes": {}, "messages_24h": 0}
+  },
+  "problems": [
+    {
+      "id": "job-failed:job-1",
+      "kind": "job-failed",
+      "severity": "high",
+      "owner": "factory-queue",
+      "since": "2026-10-01T00:00:00Z",
+      "headline": "1 factory job failed",
+      "next_action": "Re-run or withdraw the job.",
+      "evidence": ""
+    }
+  ],
+  "alerts": {"open": [], "recent": []}
+}

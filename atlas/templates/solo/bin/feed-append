@@ -1,0 +1,43 @@
+#!/usr/bin/env bash
+# feed-append: the one way to write board and feed lines. Append-only, stamped from `date`.
+#   feed-append --board "<name> · <state> · <headline> [· <details>]"   -> board.md
+#   feed-append "<title>" ["<body line>" ...]                           -> feed.md
+# Board states: working | blocked | done | needs-owner | needs-lead | resolved
+# Headline: plain English, at most 60 characters, no ids/paths/hashes. Details are free text.
+# Env: LAB_ROOT (default ~/atlas-lab). Never put secrets in the arguments.
+set -u
+ROOT="${LAB_ROOT:-$HOME/atlas-lab}"
+SEP=' · '
+now=$(date '+%Y-%m-%d %H:%M')
+die() { echo "feed-append: $*" >&2; exit 2; }
+
+if [[ "${1:-}" == "--board" ]]; then
+  [[ -n "${2:-}" ]] || die 'usage: feed-append --board "<name> · <state> · <headline> [· <details>]"'
+  line="${2//$'\n'/ }"
+  # Strip a leading timestamp if the caller supplied one; the stamp always comes from `date`.
+  if [[ "$line" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}\ [0-9]{2}:[0-9]{2}${SEP} ]]; then line="${line#*"$SEP"}"; fi
+  rest="$line"
+  name="${rest%%"$SEP"*}"; rest="${rest#*"$SEP"}"
+  [[ "$rest" != "$line" ]] || die "need: name${SEP}state${SEP}headline"
+  state="${rest%%"$SEP"*}"; rest="${rest#*"$SEP"}"
+  [[ "$rest" != "$state" ]] || die "need: name${SEP}state${SEP}headline"
+  headline="${rest%%"$SEP"*}"
+  [[ -n "$name" && -n "$headline" ]] || die "name and headline must not be empty"
+  case "$state" in working|blocked|done|needs-owner|needs-lead|resolved) ;; *) die "bad state '$state' (working|blocked|done|needs-owner|needs-lead|resolved)";; esac
+  [[ ${#headline} -le 60 ]] || die "headline is ${#headline} chars (max 60): $headline"
+  out="${now}${SEP}${line}"$'\n'; dest="$ROOT/board.md"
+else
+  [[ -n "${1:-}" ]] || die 'usage: feed-append "<title>" ["<line>" ...]'
+  title="${1//$'\n'/ }"; shift
+  out=$'\n'"## ${now}${SEP}${title}"$'\n'
+  for l in "$@"; do
+    l="${l//$'\n'/ }"
+    [[ "$l" != '##'* ]] || die "body lines must not start with '##'"
+    out+="$l"$'\n'
+  done
+  dest="$ROOT/feed.md"
+fi
+[[ ${#out} -le 4000 ]] || die "entry too long (max 4000 chars)"
+[[ -d "$ROOT" ]] || die "no atlas-lab at $ROOT (run the installer, or set LAB_ROOT)"
+printf '%s' "$out" >> "$dest" || die "cannot write $dest"
+echo "appended to $dest"

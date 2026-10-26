@@ -1,0 +1,9 @@
+{
+  "v": 1,
+  "owner": "Owner",
+  "tz": "America/New_York",
+  "nodes": [
+    {"id": "lead", "label": "Lead", "role": "lab"},
+    {"id": "worker", "label": "Worker", "role": "factory"}
+  ]
+}

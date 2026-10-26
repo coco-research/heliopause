@@ -1,0 +1,5 @@
+{
+  "hook_event_name": "sessionStart",
+  "cursor_version": "1.7.2",
+  "cwd": "__FOLDER__"
+}

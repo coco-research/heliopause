@@ -1,0 +1,9 @@
+{
+  "pools": [
+    {"id": "pool-1", "name": "Pool 1", "unit": "weekly_pct", "used": 42, "allowance": 100, "over": false, "as_of": {{epoch now-20m}}, "old": false, "extra": {}},
+    {"id": "pool-2", "name": "Pool 2", "unit": "weekly_pct", "used": 18, "allowance": 100, "over": false, "as_of": {{epoch now-20m}}, "old": false, "extra": {}},
+    {"id": "pool-3", "name": "Pool 3", "unit": "weekly_pct", "used": 63, "allowance": 100, "over": false, "as_of": {{epoch now-20m}}, "old": false, "extra": {}},
+    {"id": "pool-4", "name": "Pool 4", "unit": "weekly_pct", "used": 27, "allowance": 100, "over": false, "as_of": {{epoch now-20m}}, "old": false, "extra": {}},
+    {"id": "pool-5", "name": "Pool 5", "unit": "weekly_pct", "used": 22, "allowance": 100, "over": false, "as_of": {{epoch now-20m}}, "old": false, "extra": {}}
+  ]
+}

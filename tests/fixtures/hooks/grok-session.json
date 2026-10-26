@@ -1,0 +1,6 @@
+{
+  "hookEventName": "session_start",
+  "hook_event_name": "SessionStart",
+  "cwd": "__PLUGIN__",
+  "workspaceRoot": "__FOLDER__"
+}

@@ -1,0 +1,14 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "SUPER=adopt-scan-secret-value-9f3c /usr/local/bin/start-a --token adopt-scan-secret-value-9f3c"
+          }
+        ]
+      }
+    ]
+  }
+}

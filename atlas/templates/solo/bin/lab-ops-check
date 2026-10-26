@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+# lab-ops-check: a cheap, read-only morning look at the lab. Script first; ask a model only if it
+# prints ATTENTION lines. Run it by hand. Prints at most ~12 lines. Never writes.
+# Env: LAB_ROOT, else ATLAS_LAB, else the folder that contains this bin/.
+set -u
+here="$(cd "$(dirname "$0")" && pwd)"
+ROOT="${LAB_ROOT:-${ATLAS_LAB:-$(cd "$here/.." && pwd)}}"
+[[ -d "$ROOT" ]] || { echo "lab: no lab at $ROOT"; exit 0; }
+open=$(find "$ROOT/inbox" -maxdepth 1 -name '*.md' 2>/dev/null | wc -l | tr -d ' ')
+last=$(grep -vE '^#|^[[:space:]]*$' "$ROOT/board.md" 2>/dev/null | tail -5)
+# Latest state per name; show who is blocked or waiting.
+stuck=$(grep -vE '^#|^[[:space:]]*$' "$ROOT/board.md" 2>/dev/null | awk -F' · ' '
+  { if ($3=="resolved") { sub(/:.*/,"",$4); delete st[$2]; delete hl[$2]; delete st[$4]; delete hl[$4] } else { st[$2]=$3; hl[$2]=$4 } }
+  END { for (n in st) if (st[n]=="blocked"||st[n]=="needs-owner"||st[n]=="needs-lead") print "ATTENTION " n " is " st[n] ": " hl[n] }')
+echo "lab: $open open ask(s) in inbox/"
+[[ -z "$stuck" ]] || echo "$stuck"
+if [[ -x "$here/bus-check" ]]; then
+  res=$("$here/bus-check" 2>&1 | grep -E '^(FAIL|bus-check:)' | head -5)
+  grep -q '^FAIL' <<<"$res" && echo "ATTENTION bus-check found problems; run bus-check"
+fi
+[[ -z "$last" ]] || { echo "recent board:"; printf '%s\n' "$last"; }
+exit 0

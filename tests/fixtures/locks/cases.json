@@ -1,0 +1,52 @@
+[
+  {
+    "live": [{"name": "uv", "version": "0.12.22"}],
+    "lock": [{"name": "uv", "version": "0.12.22"}],
+    "missing": [],
+    "extra": [],
+    "drift": []
+  },
+  {
+    "live": [{"name": "uv", "version": "0.12.22"}, {"name": "github-cli", "version": null}],
+    "lock": [{"name": "uv", "version": "0.12.22"}, {"name": "github-cli", "version": "2.102.0"}],
+    "missing": ["github-cli"],
+    "extra": [],
+    "drift": []
+  },
+  {
+    "live": [{"name": "uv", "version": "0.12.22"}, {"name": "graphify", "version": "0.9.13"}],
+    "lock": [{"name": "uv", "version": "0.12.22"}, {"name": "graphify", "version": null}],
+    "missing": [],
+    "extra": ["graphify"],
+    "drift": []
+  },
+  {
+    "live": [{"name": "ponytail", "version": "4.10.1"}],
+    "lock": [{"name": "ponytail", "version": "9.9.9"}],
+    "missing": [],
+    "extra": [],
+    "drift": [{"here": "4.10.1", "lock": "9.9.9", "name": "ponytail"}]
+  },
+  {
+    "live": [
+      {"name": "graphify", "version": "0.9.13"},
+      {"name": "ponytail", "version": "4.10.1"},
+      {"name": "uv", "version": "0.12.22"}
+    ],
+    "lock": [
+      {"name": "github-cli", "version": "2.102.0"},
+      {"name": "ponytail", "version": "4.10.1"},
+      {"name": "uv", "version": "0.9.0"}
+    ],
+    "missing": ["github-cli"],
+    "extra": ["graphify"],
+    "drift": [{"here": "0.12.22", "lock": "0.9.0", "name": "uv"}]
+  },
+  {
+    "live": [{"name": "uv", "version": "0.12.22"}],
+    "lock": [{"name": "not a name", "version": "1.2.3"}, {"name": "uv", "version": "nope"}],
+    "missing": [],
+    "extra": ["uv"],
+    "drift": []
+  }
+]

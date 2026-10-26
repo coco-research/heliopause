@@ -1,0 +1,36 @@
+# One path per line. '#' starts a comment.
+# A plain path is omitted. "path => {}" is kept as "{}\n" (read at import).
+
+# demo/home names the internal lab. demo/generic ships so a release can run it.
+demo/home
+tests/
+.github/
+docs/DECISIONS.md
+docs/council-2026-09-30-brief.md
+docs/council-2026-09-30-grok.md
+docs/releases/
+docs/routes.example.json
+CHANGELOG.md
+release-please-config.json
+.release-please-manifest.json
+# Vendored memory lite stays private; atlas memory says it is not in this build.
+vendor/m0-lite/
+atlas/memory_lite.py
+atlas/aliases.json => {}
+atlas/chats.json => {}
+atlas/repos.json => {}
+# Product nodes: a public build uses the neutral default in collect.py.
+atlas/nodes.json => {}
+# Read-only aliases for older internal configs. A public build has none.
+atlas/legacy.json => {}
+
+# ponytail: these still name built-in nodes on tags that have no exclude file
+# (v0.3.0 included). directory.json is read at import by brief.py.
+# demo_traffic.py is the sign-off writer. This file names the lab docs above.
+atlas/directory.json => {}
+# connect.py writes Cursor/Codex/Grok hook files with no undo yet; out of 0.7 (Tess, ask-0461).
+atlas/connect.py
+tests/test_connect.py
+# Repo tools: none of them runs from a zip (no .git), and the demo ones name internal nodes.
+scripts/
+.public-exclude

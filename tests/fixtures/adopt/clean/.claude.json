@@ -1,0 +1,10 @@
+{
+  "userID": "adopt-scan-secret-value-9f3c",
+  "mcpServers": {
+    "alpha": {
+      "command": "npx",
+      "args": ["--token", "adopt-scan-secret-value-9f3c"],
+      "env": {"API_URL": "https://example.invalid/adopt-scan-secret-value-9f3c"}
+    }
+  }
+}

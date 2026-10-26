@@ -1,0 +1,372 @@
+/* Messages view. Scoped under .hp-msg so Signal classes stay as they are. */
+
+.hp-msg { min-width: 0; color: var(--ink); font-family: var(--font); }
+.hp-msg .eyebrow {
+  margin: 0 0 6px;
+  font: 500 11px/16px var(--mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+.hp-msg .hp-back {
+  display: none;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  margin-bottom: 8px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--blue-text);
+  font: 600 14px/20px var(--font);
+  cursor: pointer;
+}
+.hp-msg .hp-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+}
+.hp-msg h1 {
+  margin: 8px 0 0;
+  font-size: 30px;
+  line-height: 36px;
+  font-weight: 650;
+  letter-spacing: -0.012em;
+}
+.hp-msg .live {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font: 400 12px/16px var(--mono);
+  color: var(--ink-3);
+  white-space: nowrap;
+}
+.hp-msg .live::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--green);
+}
+.hp-msg .filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 18px;
+}
+.hp-msg .hp-seg {
+  display: inline-flex;
+  padding: 3px;
+  gap: 2px;
+  border-radius: var(--r-ctl);
+  background: var(--surface);
+}
+.hp-msg .hp-seg button {
+  border: 0;
+  background: none;
+  min-height: 30px;
+  padding: 0 12px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-2);
+  cursor: pointer;
+}
+.hp-msg .hp-seg button.on,
+.hp-msg .hp-seg button[aria-pressed="true"] {
+  background: var(--paper);
+  color: var(--ink);
+  box-shadow: 0 1px 2px rgba(11, 11, 11, 0.12);
+}
+.hp-msg .sel-box {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 36px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-ctl);
+  font-size: 13px;
+  color: var(--ink-2);
+  background: var(--paper);
+}
+.hp-msg .sel-box select {
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  font: 600 13px/18px var(--font);
+  cursor: pointer;
+}
+.hp-msg .tally {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 20px;
+  margin-top: 18px;
+  padding: 12px 0;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+.hp-msg .tally button {
+  border: 0;
+  background: none;
+  padding: 0;
+  cursor: pointer;
+  font: inherit;
+}
+.hp-msg .tally button[aria-pressed="true"] { text-decoration: underline; text-underline-offset: 3px; }
+.hp-msg .st {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  font-weight: 650;
+  font-size: 13px;
+  line-height: 18px;
+  white-space: nowrap;
+  color: var(--ink-3);
+}
+.hp-msg .st .m { font-family: var(--mono); font-weight: 500; }
+.hp-msg .st .c { font-family: var(--mono); font-weight: 600; }
+.hp-msg .st.sent { color: var(--ink-3); }
+.hp-msg .st.prog { color: var(--blue-text); }
+.hp-msg .st.done { color: var(--green); }
+.hp-msg .st.fail { color: var(--red); }
+.hp-msg .st.wait { color: var(--amber); }
+.hp-msg .split { display: block; margin-top: 4px; min-width: 0; }
+.hp-msg.is-thread .split {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 400px;
+  gap: 28px;
+  align-items: start;
+}
+.hp-msg .hp-log, .hp-msg .thread { min-width: 0; }
+.hp-msg .day {
+  margin: 18px 0 2px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+  font: 500 11px/16px var(--mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+.hp-msg .msg {
+  display: grid;
+  grid-template-columns: 48px 150px minmax(0, 1fr) auto 132px;
+  gap: 16px;
+  align-items: center;
+  width: 100%;
+  padding: 12px 4px;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+}
+.hp-msg .msg .t { font: 400 12px/16px var(--mono); color: var(--ink-3); }
+.hp-msg .ft {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  white-space: nowrap;
+}
+.hp-msg .ft b { font-weight: 600; overflow: hidden; text-overflow: ellipsis; }
+.hp-msg .ft .ar { color: var(--ink-3); font-family: var(--mono); }
+.hp-msg .orb {
+  flex: none;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--surface);
+  color: var(--ink-2);
+  font: 650 11px/1 var(--font);
+}
+.hp-msg .sum { min-width: 0; display: flex; align-items: center; gap: 10px; }
+.hp-msg .sum-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.hp-msg .chip {
+  display: inline-flex;
+  align-items: center;
+  height: 22px;
+  padding: 0 8px;
+  border-radius: var(--r-pill);
+  background: var(--surface);
+  color: var(--ink-2);
+  font: 500 11px/22px var(--mono);
+  white-space: nowrap;
+}
+.hp-msg .chip.kind {
+  background: none;
+  border: 1px solid var(--line);
+  height: 20px;
+  line-height: 18px;
+  color: var(--ink-3);
+}
+.hp-msg .repo { font: 400 12px/16px var(--mono); color: var(--ink-3); white-space: nowrap; }
+.hp-msg .tool-cell { font: 400 12px/16px var(--mono); color: var(--ink-3); white-space: nowrap; }
+.hp-msg .msg.sel { background: var(--blue-soft); }
+.hp-msg .msg.fail .sum-text { color: var(--red); }
+.hp-msg .empty { margin: 14px 0; color: var(--ink-2); font-size: 14px; line-height: 21px; }
+.hp-msg:not(.is-thread) .thread { display: none; }
+.hp-msg .thread {
+  display: grid;
+  gap: 16px;
+  margin-top: 12px;
+  padding: 20px 20px 18px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-tile);
+  position: sticky;
+  top: 0;
+  background: var(--paper);
+}
+.hp-msg .thread h3 { margin: 0; font: 650 19px/25px var(--font); }
+.hp-msg .tmeta { display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center; }
+.hp-msg .steps { display: grid; gap: 0; }
+.hp-msg .step {
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr);
+  gap: 12px;
+  position: relative;
+  padding-bottom: 16px;
+}
+.hp-msg .step:last-child { padding-bottom: 0; }
+.hp-msg .step::before {
+  content: "";
+  position: absolute;
+  left: 9px;
+  top: 20px;
+  bottom: 0;
+  width: 1.5px;
+  background: var(--line);
+}
+.hp-msg .step:last-child::before { display: none; }
+.hp-msg .mk { font: 500 14px/20px var(--mono); text-align: center; }
+.hp-msg .mk.sent { color: var(--ink-3); }
+.hp-msg .mk.prog { color: var(--blue-text); }
+.hp-msg .mk.done { color: var(--green); }
+.hp-msg .mk.fail { color: var(--red); }
+.hp-msg .mk.wait { color: var(--amber); }
+.hp-msg .bd { display: grid; gap: 4px; min-width: 0; }
+.hp-msg .hd {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 13px;
+  line-height: 20px;
+}
+.hp-msg .hd b { font-weight: 650; }
+.hp-msg .tx { font-size: 13px; line-height: 19px; color: var(--ink-2); }
+.hp-msg .quote {
+  font-size: 13px;
+  line-height: 19px;
+  color: var(--ink);
+  background: var(--surface);
+  border-radius: var(--r-ctl);
+  padding: 10px 12px;
+}
+.hp-msg .step.fail .quote { background: var(--stale-wash); }
+.hp-msg .chks { display: flex; flex-wrap: wrap; gap: 8px 14px; }
+.hp-msg .ck {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 5px;
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 600;
+  color: var(--ink-2);
+  white-space: nowrap;
+}
+.hp-msg .ck.bad { color: var(--red); }
+.hp-msg .ck.none { color: var(--ink-3); font-weight: 500; }
+.hp-msg .note { margin: 0; font-size: 12px; line-height: 18px; color: var(--ink-3); }
+.hp-msg .err { margin: 0; font-size: 12px; line-height: 18px; color: var(--red); }
+.hp-msg .acts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+}
+.hp-msg .mark-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.hp-msg .mark-row .note { flex: 1 0 100%; }
+.hp-msg textarea.code {
+  width: 100%;
+  margin: 0;
+  resize: vertical;
+  font: 400 12px/19px var(--mono);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-ctl);
+  padding: 12px 14px;
+  color: var(--ink-2);
+  white-space: pre-wrap;
+}
+.hp-msg .btn.btn-accent {
+  background: var(--blue);
+  border-color: var(--blue);
+  color: var(--blue-ink);
+}
+.hp-msg .btn.btn-accent:hover { background: var(--ink); border-color: var(--ink); color: var(--bg); }
+.hp-msg a.link { color: var(--blue-text); font-weight: 600; text-decoration: none; }
+.hp-msg button:focus-visible,
+.hp-msg select:focus-visible,
+.hp-msg .msg:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+
+@media (max-width: 1100px) {
+  .hp-msg h1 { font-size: 26px; line-height: 32px; }
+  .hp-msg.is-thread .split { grid-template-columns: minmax(0, 1fr) 340px; gap: 20px; }
+  .hp-msg .msg {
+    grid-template-columns: 40px minmax(0, 1fr) auto;
+    grid-template-areas: "t ft st" ". sum sum";
+    gap: 4px 10px;
+    padding: 11px 4px;
+  }
+  .hp-msg .msg .t { grid-area: t; }
+  .hp-msg .msg .ft { grid-area: ft; }
+  .hp-msg .msg .sum { grid-area: sum; }
+  .hp-msg .msg .st { grid-area: st; }
+  .hp-msg .msg .tool-cell { display: none; }
+  .hp-msg .sum-text { white-space: normal; }
+  .hp-msg .thread { padding: 16px; }
+  .hp-msg .thread .acts .btn { flex: 1 1 auto; }
+}
+
+@media (max-width: 560px) {
+  .hp-msg .msg {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas: "ft t" "sum sum" "st st";
+    gap: 6px 8px;
+    padding: 14px 2px;
+  }
+  .hp-msg.is-thread .hp-log,
+  .hp-msg.is-thread .hp-head,
+  .hp-msg.is-thread .filters,
+  .hp-msg.is-thread .tally { display: none; }
+  .hp-msg.is-thread .split { display: block; }
+  .hp-msg.is-thread .hp-back { display: inline-flex; }
+  .hp-msg.is-thread .thread { border: 0; position: static; padding: 0; margin-top: 0; }
+  .hp-msg .thread .acts .btn { flex: 1; }
+}
+
+@media (min-width: 1101px) {
+  .hp-msg.is-thread .msg { grid-template-columns: 48px 150px minmax(0, 1fr) 132px; }
+  .hp-msg.is-thread .sum-text { flex: 1 1 auto; min-width: 0; }
+  .hp-msg.is-thread .msg .repo {
+    flex: 0 1 auto;
+    min-width: 0;
+    max-width: 12em;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}

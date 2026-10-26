@@ -1,0 +1,19 @@
+# Calls in atlas/ that tests/test_fs_guard.py flags but that do not go through atlas/labfs.py.
+# The guard fails closed: it flags every call that can write, delete, rename, chmod, link or redirect a file,
+# and every open() without a literal 'r'/'rb'. One line each: file:function:call, then why it is safe.
+# Keep this list small. A new entry needs a reason a reviewer can check against the code.
+atlas/lifecycle.py:uninstall:os.rename moves DIR/decisions to its sibling DIR.decisions-kept after an lstat shows a real folder; a rename moves the entry itself and never writes through a link.
+atlas/lifecycle.py:uninstall:shutil.move the same move across filesystems (EXDEV only): shutil.move copies symlinks as symlinks (copytree symlinks=True), never through them, then removes the original.
+atlas/lifecycle.py:uninstall:shutil.rmtree deletes the whole lab folder after its checks (atlas.json and BUS.md present, not HOME or above); rmtree removes links inside the lab without following them.
+atlas/lifecycle.py:uninstall:.unlink removes the symlink that the user passed as --lab (only when lab.is_symlink()), after the real lab is gone; unlinking a link removes the link itself, never its target.
+atlas/plugin.py:_drop_tree:shutil.rmtree deletes ~/Heliopause/marketplace (or 0.6's ~/.atlas/marketplace) after labfs.home() checked the folders above it and lstat showed a real folder; links inside are removed, not followed.
+atlas/write.py:_slurp:os.fchmod sets 0600 on the token file's descriptor from labfs.open_read, after fstat showed a regular file with one link; a descriptor cannot be redirected by a link.
+atlas/cli.py:_get:.open(mode) is urllib's build_opener(...).open(url): an HTTP GET to the loopback server, not a file open.
+atlas/cli.py:_send:.open(mode) is urllib's build_opener(...).open(req): an HTTP request to the loopback server, not a file open.
+atlas/lifecycle.py:doctor:shutil.disk_usage only reads free space (statvfs) for the doctor's disk line; it writes nothing.
+atlas/problems.py:detect:shutil.disk_usage only reads free space (statvfs) for the low-disk problem; it writes nothing.
+atlas/plugin.py:_resolve:shutil.which only searches PATH for the host CLI (stat calls); it writes nothing.
+atlas/detect.py:_cli:shutil.which only searches PATH for a tool's CLI (stat calls); it writes nothing.
+atlas/kit/__init__.py:_run:shutil.which only searches PATH for a host CLI (stat calls); it writes nothing.
+atlas/kit/__init__.py:_command_version:shutil.which only searches PATH for a tool's CLI (stat calls); it writes nothing.
+atlas/role_brief.py:_editor:shutil.which only searches PATH for vi as the fallback editor; it writes nothing.

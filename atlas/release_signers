@@ -1,0 +1,2 @@
+# OpenSSH allowed signers for Atlas releases. One key, principal atlas-release, namespace atlas-release.
+atlas-release namespaces="atlas-release" ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIArkj2zdOYSu0g8yfYV7Vru1PD1bUM/CKUUZ+QX2bXEV

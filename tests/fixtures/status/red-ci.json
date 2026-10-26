@@ -1,0 +1,305 @@
+{
+  "nowMs": 1760832000000,
+  "state": {
+    "decisions": [],
+    "bus": {
+      "queue": {
+        "failed": 0,
+        "inbox": 0,
+        "running": 0
+      }
+    },
+    "graph": {
+      "lanes": [
+        {
+          "id": "lab",
+          "label": "Lab",
+          "nodes": [
+            "queue",
+            "vp"
+          ]
+        }
+      ],
+      "nodes": {
+        "queue": {
+          "id": "queue",
+          "state": "working",
+          "label": "Queue Factory"
+        },
+        "vp": {
+          "id": "vp",
+          "state": "idle",
+          "label": "VP"
+        }
+      },
+      "messages_24h": 12,
+      "mentions_24h": 0
+    }
+  },
+  "problems": [
+    {
+      "id": "ci-red:mobile-app#1",
+      "kind": "ci-red",
+      "severity": "high",
+      "owner": "factory-queue",
+      "since": "2026-10-01T00:00:00Z",
+      "headline": "CI red on mobile-app #1",
+      "next_action": "Fix or re-run the failing check.",
+      "evidence": ""
+    },
+    {
+      "id": "ci-red:mobile-app#2",
+      "kind": "ci-red",
+      "severity": "high",
+      "owner": "factory-queue",
+      "since": "2026-10-01T00:00:00Z",
+      "headline": "CI red on mobile-app #2",
+      "next_action": "Fix or re-run the failing check.",
+      "evidence": ""
+    },
+    {
+      "id": "ci-red:mobile-app#3",
+      "kind": "ci-red",
+      "severity": "high",
+      "owner": "factory-queue",
+      "since": "2026-10-01T00:00:00Z",
+      "headline": "CI red on mobile-app #3",
+      "next_action": "Fix or re-run the failing check.",
+      "evidence": ""
+    },
+    {
+      "id": "ci-red:mobile-app#4",
+      "kind": "ci-red",
+      "severity": "high",
+      "owner": "factory-queue",
+      "since": "2026-10-01T00:00:00Z",
+      "headline": "CI red on mobile-app #4",
+      "next_action": "Fix or re-run the failing check.",
+      "evidence": ""
+    },
+    {
+      "id": "ci-red:mobile-app#5",
+      "kind": "ci-red",
+      "severity": "high",
+      "owner": "factory-queue",
+      "since": "2026-10-01T00:00:00Z",
+      "headline": "CI red on mobile-app #5",
+      "next_action": "Fix or re-run the failing check.",
+      "evidence": ""
+    },
+    {
+      "id": "ci-red:mobile-app#6",
+      "kind": "ci-red",
+      "severity": "high",
+      "owner": "factory-queue",
+      "since": "2026-10-01T00:00:00Z",
+      "headline": "CI red on mobile-app #6",
+      "next_action": "Fix or re-run the failing check.",
+      "evidence": ""
+    },
+    {
+      "id": "ci-red:mobile-app#7",
+      "kind": "ci-red",
+      "severity": "high",
+      "owner": "factory-queue",
+      "since": "2026-10-01T00:00:00Z",
+      "headline": "CI red on mobile-app #7",
+      "next_action": "Fix or re-run the failing check.",
+      "evidence": ""
+    },
+    {
+      "id": "ci-red:mobile-app#8",
+      "kind": "ci-red",
+      "severity": "high",
+      "owner": "factory-queue",
+      "since": "2026-10-01T00:00:00Z",
+      "headline": "CI red on mobile-app #8",
+      "next_action": "Fix or re-run the failing check.",
+      "evidence": ""
+    },
+    {
+      "id": "ci-red:mobile-app#9",
+      "kind": "ci-red",
+      "severity": "high",
+      "owner": "factory-queue",
+      "since": "2026-10-01T00:00:00Z",
+      "headline": "CI red on mobile-app #9",
+      "next_action": "Fix or re-run the failing check.",
+      "evidence": ""
+    },
+    {
+      "id": "ci-red:mobile-app#10",
+      "kind": "ci-red",
+      "severity": "high",
+      "owner": "factory-queue",
+      "since": "2026-10-01T00:00:00Z",
+      "headline": "CI red on mobile-app #10",
+      "next_action": "Fix or re-run the failing check.",
+      "evidence": ""
+    },
+    {
+      "id": "ci-red:mobile-app#11",
+      "kind": "ci-red",
+      "severity": "high",
+      "owner": "factory-queue",
+      "since": "2026-10-01T00:00:00Z",
+      "headline": "CI red on mobile-app #11",
+      "next_action": "Fix or re-run the failing check.",
+      "evidence": ""
+    },
+    {
+      "id": "ci-red:mobile-app#12",
+      "kind": "ci-red",
+      "severity": "high",
+      "owner": "factory-queue",
+      "since": "2026-10-01T00:00:00Z",
+      "headline": "CI red on mobile-app #12",
+      "next_action": "Fix or re-run the failing check.",
+      "evidence": ""
+    },
+    {
+      "id": "ci-red:mobile-app#13",
+      "kind": "ci-red",
+      "severity": "high",
+      "owner": "factory-queue",
+      "since": "2026-10-01T00:00:00Z",
+      "headline": "CI red on mobile-app #13",
+      "next_action": "Fix or re-run the failing check.",
+      "evidence": ""
+    },
+    {
+      "id": "ci-red:mobile-app#14",
+      "kind": "ci-red",
+      "severity": "high",
+      "owner": "factory-queue",
+      "since": "2026-10-01T00:00:00Z",
+      "headline": "CI red on mobile-app #14",
+      "next_action": "Fix or re-run the failing check.",
+      "evidence": ""
+    },
+    {
+      "id": "ci-red:mobile-app#15",
+      "kind": "ci-red",
+      "severity": "high",
+      "owner": "factory-queue",
+      "since": "2026-10-01T00:00:00Z",
+      "headline": "CI red on mobile-app #15",
+      "next_action": "Fix or re-run the failing check.",
+      "evidence": ""
+    },
+    {
+      "id": "ci-red:mobile-app#16",
+      "kind": "ci-red",
+      "severity": "high",
+      "owner": "factory-queue",
+      "since": "2026-10-01T00:00:00Z",
+      "headline": "CI red on mobile-app #16",
+      "next_action": "Fix or re-run the failing check.",
+      "evidence": ""
+    },
+    {
+      "id": "ci-red:mobile-app#17",
+      "kind": "ci-red",
+      "severity": "high",
+      "owner": "factory-queue",
+      "since": "2026-10-01T00:00:00Z",
+      "headline": "CI red on mobile-app #17",
+      "next_action": "Fix or re-run the failing check.",
+      "evidence": ""
+    },
+    {
+      "id": "ci-red:mobile-app#18",
+      "kind": "ci-red",
+      "severity": "high",
+      "owner": "factory-queue",
+      "since": "2026-10-01T00:00:00Z",
+      "headline": "CI red on mobile-app #18",
+      "next_action": "Fix or re-run the failing check.",
+      "evidence": ""
+    },
+    {
+      "id": "ci-red:mobile-app#19",
+      "kind": "ci-red",
+      "severity": "high",
+      "owner": "factory-queue",
+      "since": "2026-10-01T00:00:00Z",
+      "headline": "CI red on mobile-app #19",
+      "next_action": "Fix or re-run the failing check.",
+      "evidence": ""
+    },
+    {
+      "id": "ci-red:mobile-app#20",
+      "kind": "ci-red",
+      "severity": "high",
+      "owner": "factory-queue",
+      "since": "2026-10-01T00:00:00Z",
+      "headline": "CI red on mobile-app #20",
+      "next_action": "Fix or re-run the failing check.",
+      "evidence": ""
+    },
+    {
+      "id": "ci-red:mobile-app#21",
+      "kind": "ci-red",
+      "severity": "high",
+      "owner": "factory-queue",
+      "since": "2026-10-01T00:00:00Z",
+      "headline": "CI red on mobile-app #21",
+      "next_action": "Fix or re-run the failing check.",
+      "evidence": ""
+    },
+    {
+      "id": "ci-red:mobile-app#22",
+      "kind": "ci-red",
+      "severity": "high",
+      "owner": "factory-queue",
+      "since": "2026-10-01T00:00:00Z",
+      "headline": "CI red on mobile-app #22",
+      "next_action": "Fix or re-run the failing check.",
+      "evidence": ""
+    },
+    {
+      "id": "ci-red:mobile-app#23",
+      "kind": "ci-red",
+      "severity": "high",
+      "owner": "factory-queue",
+      "since": "2026-10-01T00:00:00Z",
+      "headline": "CI red on mobile-app #23",
+      "next_action": "Fix or re-run the failing check.",
+      "evidence": ""
+    },
+    {
+      "id": "ci-red:mobile-app#24",
+      "kind": "ci-red",
+      "severity": "high",
+      "owner": "factory-queue",
+      "since": "2026-10-01T00:00:00Z",
+      "headline": "CI red on mobile-app #24",
+      "next_action": "Fix or re-run the failing check.",
+      "evidence": ""
+    },
+    {
+      "id": "ci-red:mobile-app#25",
+      "kind": "ci-red",
+      "severity": "high",
+      "owner": "factory-queue",
+      "since": "2026-10-01T00:00:00Z",
+      "headline": "CI red on mobile-app #25",
+      "next_action": "Fix or re-run the failing check.",
+      "evidence": ""
+    },
+    {
+      "id": "ci-red:mobile-app#26",
+      "kind": "ci-red",
+      "severity": "high",
+      "owner": "factory-queue",
+      "since": "2026-10-01T00:00:00Z",
+      "headline": "CI red on mobile-app #26",
+      "next_action": "Fix or re-run the failing check.",
+      "evidence": ""
+    }
+  ],
+  "alerts": {
+    "open": [],
+    "recent": []
+  }
+}

@@ -1,0 +1,7 @@
+# Default rules, plus one allowlisted value: the fake token the CLI and MCP tests use.
+[extend]
+useDefault = true
+
+[allowlist]
+description = "fake test token, not a secret"
+regexes = ['''^t0ken-AbC_123-xyz$''']
