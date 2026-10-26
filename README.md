@@ -33,12 +33,7 @@ Install Heliopause v0.7.1 from https://github.com/coco-research/heliopause by fo
 
 [INSTALL.md](INSTALL.md) tells your agent to show you each step and wait for your yes before it changes anything outside `~/atlas-lab`.
 
-<p align="center">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="docs/readme/now-dark.webp">
-    <img src="docs/readme/now-light.webp" alt="The Now view: a one-line status at the top, then a map of agents in columns, with lines for the messages between them" width="100%">
-  </picture>
-</p>
+<picture><source media="(prefers-color-scheme: dark)" srcset="docs/readme/hero-dark.webp"><img src="docs/readme/hero.webp" alt="A transit-style map: ink lines and evenly spaced square stations, with blue dots marking stops"></picture>
 
 <sub>A sample company, not real data. This is an early preview: expect rough edges.</sub>
 
@@ -50,25 +45,6 @@ Heliopause by Coco Research gives your AI tools a Lead and roles, like a small c
 - **Agents:** each agent as working, idle, blocked, or needs you, with its latest line.
 - **Work:** open pull requests and CI results, shown as problems, plus alerts with a Done button.
 - **A sample company** to look at before you point it at your own folders.
-
-<table>
-  <tr>
-    <td width="50%">
-      <picture>
-        <source media="(prefers-color-scheme: dark)" srcset="docs/readme/agents-dark.webp">
-        <img src="docs/readme/agents-light.webp" alt="The Agents view: a table of agents with their state and latest headline">
-      </picture>
-      <p align="center"><sub>Agents: who is doing what</sub></p>
-    </td>
-    <td width="50%">
-      <picture>
-        <source media="(prefers-color-scheme: dark)" srcset="docs/readme/work-dark.webp">
-        <img src="docs/readme/work-light.webp" alt="The Work view: problems and alerts">
-      </picture>
-      <p align="center"><sub>Work: what is waiting or broken</sub></p>
-    </td>
-  </tr>
-</table>
 
 ## What it isn't
 
