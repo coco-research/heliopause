@@ -35,7 +35,7 @@ Install Heliopause v0.7.1 from https://github.com/coco-research/heliopause by fo
 
 <picture><source media="(prefers-color-scheme: dark)" srcset="docs/readme/hero-dark.webp"><img src="docs/readme/hero.webp" alt="A transit-style map: ink lines and evenly spaced square stations, with blue dots marking stops"></picture>
 
-<sub>A sample company, not real data. This is an early preview: expect rough edges.</sub>
+<sub>This is an early preview: expect rough edges.</sub>
 
 ## What it is
 
