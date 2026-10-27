@@ -679,6 +679,48 @@ def test_setsid_grandchild_does_not_block_return(tmp_path, monkeypatch):
                 pass
 
 
+def test_setsid_grandchild_holding_stdin_does_not_block_return(tmp_path, monkeypatch):
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir()
+    script = bin_dir / "claude"
+    script.write_text(
+        "#!/usr/bin/env python3\n"
+        "import os, sys, time\n"
+        "from pathlib import Path\n"
+        "if os.fork() == 0:\n"
+        "    os.setsid()\n"
+        "    os.close(1)\n"
+        "    Path('grandchild.pid').write_text(str(os.getpid()))\n"
+        "    time.sleep(120)\n"
+        "    os._exit(0)\n"
+        "deadline = time.time() + 5\n"
+        "while not Path('grandchild.pid').exists() and time.time() < deadline:\n"
+        "    time.sleep(0.05)\n"
+        "sys.stdout.write('done\\n')\n"
+        "sys.stdout.flush()\n",
+        encoding="utf-8",
+    )
+    script.chmod(0o755)
+    monkeypatch.setenv("PATH", str(bin_dir) + os.pathsep + os.environ.get("PATH", ""))
+    work = tmp_path / "work"
+    work.mkdir()
+    prompt = "p" * (512 * 1024)
+    started = time.monotonic()
+    try:
+        result = harness.run("claude", prompt, str(work), 30)
+        elapsed = time.monotonic() - started
+        assert elapsed < 15
+        assert result.timed_out is False
+        assert result.text == "done\n"
+    finally:
+        pid_path = work / "grandchild.pid"
+        if pid_path.exists():
+            try:
+                os.kill(int(pid_path.read_text(encoding="utf-8")), 9)
+            except OSError:
+                pass
+
+
 def test_model_flag_is_rejected_and_valid_model_is_one_token(tmp_path):
     with pytest.raises(ValueError):
         harness.run("claude", PROMPT, str(tmp_path), 5, model="--dangerously-skip-permissions")

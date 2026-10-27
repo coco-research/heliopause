@@ -17,6 +17,8 @@ import pytest
 
 from atlas.__main__ import make_server
 
+from node_run import node_run
+
 HOME = Path(__file__).resolve().parents[1] / "tests" / "fixtures" / "home"
 STATIC = Path(__file__).resolve().parents[1] / "atlas" / "static"
 INDEX = (STATIC / "index.html").read_text(encoding="utf-8")
@@ -301,7 +303,7 @@ def test_fyi_summary_sentence():
         "  none: fyiSummary(0, [])"
         "}));"
     )
-    out = json.loads(subprocess.run(["node", "-e", script, JS], capture_output=True, text=True, check=True).stdout)
+    out = json.loads(node_run(script, JS, capture_output=True, text=True, check=True).stdout)
     assert out["three"] == "FYI · 3 quieter things (2 red CI on ci, 1 low disk on disk-guard)"
     assert out["one"] == "FYI · 1 quieter thing (1 low disk on disk-guard)"
     assert out["more"] == "FYI · 5 quieter things (2 red CI on ci, 1 low disk on disk-guard, 1 warning on budget…)"
@@ -330,7 +332,7 @@ def test_needs_row_cap_runs():
         "  exact: run(1200, '400px 400px', 2)"
         "}));"
     )
-    out = json.loads(subprocess.run(["node", "-e", script, JS], capture_output=True, text=True, check=True).stdout)
+    out = json.loads(node_run(script, JS, capture_output=True, text=True, check=True).stdout)
     assert out["row"] == {"hidden": [False, False, False, True, True], "more": "2 more \u2192"}
     assert out["phone"]["hidden"] == [False, False, False, False, False] and out["phone"]["more"] == ""
     assert out["stack"]["hidden"] == [False, False, False, False] and out["stack"]["more"] == ""
@@ -363,7 +365,7 @@ def test_card_open_reuses_alert_link_safety():
         "  prose: pack('Answer or resolve it.')"
         "}));"
     )
-    out = json.loads(subprocess.run(["node", "-e", script, JS], capture_output=True, text=True, check=True).stdout)
+    out = json.loads(node_run(script, JS, capture_output=True, text=True, check=True).stdout)
     assert out["gh"] == {
         "text": "Open on GitHub",
         "href": "https://github.com/coco-research/atlas/pull/1",
@@ -718,7 +720,7 @@ def test_ambient_interval_runs():
         "ambientInterval(0, 10), ambientInterval(-3, 10), ambientInterval(undefined, 10),"
         "ambientInterval(10, 10), ambientInterval(5, 10)]));"
     )
-    out = json.loads(subprocess.run(["node", "-e", script, JS], capture_output=True, text=True, check=True).stdout)
+    out = json.loads(node_run(script, JS, capture_output=True, text=True, check=True).stdout)
     zero, neg, missing, busy, half = out
     assert zero is None and neg is None and missing is None
     busiest_s = int(re.search(r"^  const AMBIENT_BUSIEST_S = (\d+);$", JS, re.M).group(1))
@@ -743,7 +745,7 @@ def test_edge_caption_runs():
         "hhmm(new Date(last))]));"
     )
     one, mention, many, past_cap, hm = json.loads(
-        subprocess.run(["node", "-e", script, JS], capture_output=True, text=True, check=True).stdout
+        node_run(script, JS, capture_output=True, text=True, check=True).stdout
     )
     assert one == f"Design \u2192 VP \u00b7 1 message, 0 mentions in 24 h \u00b7 last at {hm}"
     assert mention == f"Design \u2192 VP \u00b7 4 messages, 1 mention in 24 h \u00b7 last at {hm}"
@@ -763,7 +765,7 @@ def test_focus_row_count_runs():
         "eval(src.slice(src.indexOf('function rowCount'), src.indexOf('function partnersOf')));"
         "console.log(JSON.stringify([rowCount(12, 3), rowCount(0, 3), rowCount(1, 0), rowCount(1, 1), rowCount(15, 0)]));"
     )
-    out = json.loads(subprocess.run(["node", "-e", script, JS], capture_output=True, text=True, check=True).stdout)
+    out = json.loads(node_run(script, JS, capture_output=True, text=True, check=True).stdout)
     assert out == ["12 messages, 3 mentions", "3 mentions", "1 message", "1 message, 1 mention", "15 messages"]
     body = JS[JS.index("function partnersOf"):JS.index("function piece")]
     assert "fibre.total_messages" in body and "fibre.total_mentions" in body and "fibre.messages)" not in body
@@ -801,7 +803,7 @@ def test_focus_partners_and_resolve_run():
         "  first: resolveFocus(noowner, null)"
         "}));"
     )
-    out = json.loads(subprocess.run(["node", "-e", script, JS], capture_output=True, text=True, check=True).stdout)
+    out = json.loads(node_run(script, JS, capture_output=True, text=True, check=True).stdout)
     assert out["ids"] == ["design", "vp", "stray"]
     assert out["vp"]["messages"] == 5 and out["vp"]["mentions"] == 10
     assert out["focus"] == "owner"
@@ -913,7 +915,7 @@ def test_problem_row_runs():
         "  failed: row('high', '1 factory job failed', 'vp', '2026-10-02T09:00:00Z', 'job-failed', 'job-failed:job-9')"
         "}));"
     )
-    out = json.loads(subprocess.run(["node", "-e", script, JS], capture_output=True, text=True, check=True).stdout)
+    out = json.loads(node_run(script, JS, capture_output=True, text=True, check=True).stdout)
     assert out["high"]["glyph"] == "\u25b2"
     assert out["mid"]["glyph"] == "\u25c6"
     assert out["low"]["glyph"] == "\u25bd"
@@ -954,7 +956,7 @@ def test_split_problems_runs():
         "  prs: out.prs"
         "}));"
     )
-    out = json.loads(subprocess.run(["node", "-e", script, JS], capture_output=True, text=True, check=True).stdout)
+    out = json.loads(node_run(script, JS, capture_output=True, text=True, check=True).stdout)
     assert out["stale"] == ["ci-red:coco-courier#157", "pr-stale:coco-courier#157"]
     assert out["prs"] == 1
     assert out["fresh"] == ["ci-red:coco-atlas#3", "job-failed:job-9", "ci-red:coco-atlas#9"]
@@ -995,7 +997,7 @@ def test_stale_pr_rows():
         "  red: red, quiet: quiet, voice: voice.headline"
         "}));"
     )
-    out = json.loads(subprocess.run(["node", "-e", script, JS], capture_output=True, text=True, check=True).stdout)
+    out = json.loads(node_run(script, JS, capture_output=True, text=True, check=True).stdout)
     assert out["prs"] == 2
     assert out["rows"] == [
         {"subject": "r#1", "red": True, "untouchedDays": 30, "owner": "vp"},
@@ -1044,7 +1046,7 @@ def test_replay_stays_off_when_narrow():
         "const before=b.text(b.ids.ticker);b.fire();console.log(JSON.stringify({narrow:a.text(a.ids.ticker),before,"
         "after:b.text(b.ids.ticker)}))})().catch(e=>{console.error(e);process.exit(1)});"
     )
-    out = json.loads(subprocess.run(["node", "-e", script, JS], capture_output=True, text=True, check=True).stdout)
+    out = json.loads(node_run(script, JS, capture_output=True, text=True, check=True).stdout)
     assert "Replay" not in out["narrow"] and "Replay" in out["before"] and "Replay" not in out["after"]
 
 def test_phone_legend_lists_live_only():
@@ -1225,7 +1227,7 @@ def _graph_node(tail: str):
         " c: { PITCH, PITCH_COMPACT, NODE_H, COMPACT_H, TOP, BW, RING_GAP, COMPACT_NAME_X, COMPACT_NAME_MAX, COMPACT_CHAR_W, ORB_R, LX, W_MIN } };')(document, svg, win);"
         + tail
     )
-    done = subprocess.run(["node", "-e", script, JS], capture_output=True, text=True, encoding="utf-8", check=True)
+    done = node_run(script, JS, capture_output=True, text=True, encoding="utf-8", check=True)
     return json.loads(done.stdout)
 
 
@@ -1925,7 +1927,7 @@ def test_table_rebuild_keeps_the_focused_row():
         "const first = body.querySelectorAll('button[data-id]').filter((n) => n.getAttribute('data-id') === 'a]b')[0]; first.focus({ preventScroll: true }); table(graph);"
         "const again = document.activeElement; console.log(JSON.stringify({ id: again.getAttribute('data-id'), fresh: again !== first, opt: again.focusOpt }));"
     )
-    out = json.loads(subprocess.run(["node", "-e", script, JS], capture_output=True, text=True, check=True).stdout)
+    out = json.loads(node_run(script, JS, capture_output=True, text=True, check=True).stdout)
     assert out == {"id": "a]b", "fresh": True, "opt": {"preventScroll": True}}
 
 
@@ -2130,7 +2132,7 @@ def test_empty_lab_and_the_four_steps():
         + "  open: firstSteps({}, { open: [{ id: 'a' }], recent: [] })"
         + "}));"
     )
-    out = json.loads(subprocess.run(["node", "-e", script, JS], capture_output=True, text=True, check=True).stdout)
+    out = json.loads(node_run(script, JS, capture_output=True, text=True, check=True).stdout)
     assert out["empty"] is True and out["noData"] is False and out["noGraph"] is False
     assert out["workerSpoke"] is False and out["other"] is False and out["lines"] is False
     assert out["fresh"] == {"lab": True, "hooks": False, "repo": False, "alert": False}
@@ -2174,7 +2176,7 @@ def test_first_run_hides_when_the_lab_fills():
         + "paintFirst({ lead: 'lead', board_lines: 1, hook: true, repos: ['atlas'], graph: quiet.graph });"
         + "console.log(JSON.stringify({ shown: shown, filled: { first: first.hidden, stage: stage.hidden, below: below.hidden } }));"
     )
-    out = json.loads(subprocess.run(["node", "-e", script, JS], capture_output=True, text=True, check=True).stdout)
+    out = json.loads(node_run(script, JS, capture_output=True, text=True, check=True).stdout)
     assert out["shown"] == {
         "first": False, "stage": True, "below": True,
         "eye": "GET STARTED · 1 OF 4 DONE", "done": 1,
@@ -2206,7 +2208,7 @@ def test_copy_command_uses_clipboard_then_selection():
         + "copyCommand('scripts/atlas-alert needs-owner test \"Test alert\"', code, button);"
         + "console.log(JSON.stringify({ copied: copied, restored: restored, delay: delay, wrote: picks[0], fell: fell, rejected: picks[picks.length - 1] === code }));"
     )
-    out = json.loads(subprocess.run(["node", "-e", script, JS], capture_output=True, text=True, check=True).stdout)
+    out = json.loads(node_run(script, JS, capture_output=True, text=True, check=True).stdout)
     assert out == {
         "copied": "Copied", "restored": "Copy command", "delay": 1500,
         "wrote": "python3 -m atlas hooks", "fell": True, "rejected": True,

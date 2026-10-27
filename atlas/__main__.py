@@ -6,6 +6,7 @@ import argparse
 import json
 import os
 import secrets
+import socketserver
 import sys
 from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -432,6 +433,12 @@ class _Server(ThreadingHTTPServer):
     poller = None
     demo = False
     ring = None
+
+    def server_bind(self):
+        # WHY: HTTPServer.server_bind asks DNS for the bound address's name (socket.getfqdn). Where reverse
+        # DNS is slow, every start waits on it. We bind 127.0.0.1 only and never read server_name.
+        socketserver.TCPServer.server_bind(self)
+        self.server_name, self.server_port = self.server_address[:2]
 
     def server_close(self):
         if self.poller is not None:
