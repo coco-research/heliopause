@@ -6,6 +6,7 @@ import fcntl
 import math
 import os
 import re
+import select
 import shutil
 import signal
 import subprocess
@@ -20,6 +21,7 @@ __version__ = "0.1.0"
 # leaves this process group and survives SIGKILL. Upgrade path: a pid tree or a cgroup.
 _KILL_GRACE_S = 5
 _DRAIN_S = 2  # after the CLI exits, how long its leftover children may hold stdout
+_POLL_S = 0.1  # how often the pipe threads check whether _reap told them to stop
 _MAX_OUTPUT_BYTES = 8 * 1024 * 1024
 _MAX_PROMPT_BYTES = 1024 * 1024
 _MAX_TIMEOUT_S = 21600  # six hours
@@ -161,15 +163,11 @@ def _close_stream(stream) -> None:
             return
     except AttributeError:
         return
-    # WHY: file.close() takes the readline lock, so it waits forever while a setsid
-    # grandchild holds the write end. Closing the fd makes readline return.
-    try:
-        os.close(stream.fileno())
-    except (OSError, ValueError):
-        pass
+    # WHY: no pipe thread can be blocked inside the buffered object any more, so close()
+    # cannot sit on the buffered-IO lock that a stuck reader or writer used to hold.
     try:
         stream.close()
-    except OSError:
+    except (OSError, ValueError):
         return
 
 
@@ -220,6 +218,7 @@ def _reap(
     writer: threading.Thread,
     reader_started: bool,
     writer_started: bool,
+    stop: threading.Event,
 ) -> None:
     if proc.poll() is None:
         _stop(proc)
@@ -227,13 +226,12 @@ def _reap(
         reader.join(_DRAIN_S)
         if reader.is_alive():
             _signal_group(proc.pid, signal.SIGKILL)
-            _close_stream(proc.stdout)
+            stop.set()
             reader.join(_DRAIN_S)
     if writer_started:
         writer.join(_DRAIN_S)
         if writer.is_alive():
-            # A setsid grandchild can hold the stdin read end open forever; closing the fd fails the blocked write.
-            _close_stream(proc.stdin)
+            stop.set()
             writer.join(_DRAIN_S)
     _close_stream(proc.stdin)
     _close_stream(proc.stdout)
@@ -303,25 +301,48 @@ def run(
     timed_out = False
     truncated = False
 
+    stop = threading.Event()
+
     def read_stdout() -> None:
         nonlocal truncated
         assert proc.stdout is not None
+        # WHY: closing the fd does not wake a thread blocked in read() on Linux, so read the raw
+        # fd in short poll() steps and stop when _reap sets `stop`. Never use proc.stdout's
+        # buffered object: its lock is what a blocked readline used to hold. poll, not select:
+        # select() can't take an fd above 1023.
+        fd = proc.stdout.fileno()
+        ready = select.poll()
+        ready.register(fd, select.POLLIN)
         got = 0
+        pending = b""
+
+        def emit(piece: bytes) -> None:
+            text = piece.decode("utf-8", "replace")
+            parts.append(text)
+            if on_delta is not None:
+                on_delta(text)
+
         try:
             while True:
+                if stop.is_set():
+                    break
+                if not ready.poll(_POLL_S * 1000):
+                    continue
                 # WHY: a bounded read, so output with no newline can't grow past the cap in memory.
-                line = proc.stdout.readline(_MAX_OUTPUT_BYTES - got + 1)
-                if not line:
-                    return
-                got += len(line)
-                text = line.decode("utf-8", "replace")
-                parts.append(text)
-                if on_delta is not None:
-                    on_delta(text)
+                chunk = os.read(fd, min(65536, _MAX_OUTPUT_BYTES - got + 1))
+                if not chunk:
+                    break
+                got += len(chunk)
+                pending += chunk
+                while b"\n" in pending:
+                    piece, pending = pending.split(b"\n", 1)
+                    emit(piece + b"\n")
                 if got > _MAX_OUTPUT_BYTES:
                     truncated = True
                     _signal_group(proc.pid, signal.SIGKILL)
-                    return
+                    break
+            if pending:
+                emit(pending)
         except Exception as exc:
             errors.append(exc)
             _signal_group(proc.pid, signal.SIGKILL)
@@ -331,7 +352,21 @@ def run(
         try:
             # WHY: a lone surrogate raises UnicodeEncodeError, which is not an OSError.
             # The thread would die with stdin still open and the child would wait out the timeout.
-            proc.stdin.write(prompt.encode("utf-8", "replace"))
+            data = memoryview(prompt.encode("utf-8", "replace"))
+            # WHY: closing the fd does not wake a thread blocked in write() on Linux, so poll a
+            # non-blocking fd in short poll() steps and stop when _reap sets `stop`.
+            fd = proc.stdin.fileno()
+            os.set_blocking(fd, False)
+            ready = select.poll()
+            ready.register(fd, select.POLLOUT)
+            while data and not stop.is_set():
+                if not ready.poll(_POLL_S * 1000):
+                    continue
+                try:
+                    n = os.write(fd, data)
+                except BlockingIOError:
+                    continue
+                data = data[n:]
         except OSError:
             pass
         finally:
@@ -356,7 +391,7 @@ def run(
         except subprocess.TimeoutExpired:
             timed_out = True
             _stop(proc)
-        _reap(proc, reader, writer, reader_started, writer_started)
+        _reap(proc, reader, writer, reader_started, writer_started, stop)
         if errors:
             raise errors[0]
         code = proc.returncode
@@ -373,7 +408,7 @@ def run(
             outcome=_outcome(name, code, text, timed_out),
         )
     except BaseException:
-        _reap(proc, reader, writer, reader_started, writer_started)
+        _reap(proc, reader, writer, reader_started, writer_started, stop)
         raise
     finally:
         _release_lock(held)
