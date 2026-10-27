@@ -1,5 +1,6 @@
 import json
 import shutil
+import socket
 import threading
 from http.client import HTTPConnection
 from pathlib import Path
@@ -287,3 +288,17 @@ def test_main_passes_demo(tmp_path, monkeypatch):
         assert seen["ring"] is False  # a demo never rings
     finally:
         seen["httpd"].server_close()
+
+
+def test_server_start_asks_no_dns(tmp_path, monkeypatch):
+    def no_dns(*args, **kwargs):
+        raise AssertionError("make_server asked DNS")
+
+    monkeypatch.setattr(socket, "getfqdn", no_dns)
+    monkeypatch.setattr(socket, "gethostbyaddr", no_dns)
+    server = make_server(tmp_path, 0, watch=False)
+    try:
+        assert server.server_name == "127.0.0.1"
+        assert server.server_port == server.server_address[1] > 0
+    finally:
+        server.server_close()
