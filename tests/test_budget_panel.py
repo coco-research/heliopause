@@ -3,10 +3,11 @@
 import json
 import re
 import shutil
-import subprocess
 from pathlib import Path
 
 import pytest
+
+from node_run import node_run
 
 STATIC = Path(__file__).resolve().parents[1] / "atlas" / "static"
 INDEX = (STATIC / "index.html").read_text(encoding="utf-8")
@@ -256,7 +257,7 @@ def test_budget_panel_runs():
         "const ctx=vm.createContext({console:console,Intl:Intl,Date:Date,Math:Math,JSON:JSON,Number:Number,String:String,isFinite:isFinite,isNaN:isNaN});"
         "vm.runInContext(helpers+'\\n'+budget+'\\n'+process.argv[2],ctx);"
     )
-    proc = subprocess.run(["node", "-e", script, JS, _DRIVER], capture_output=True, text=True)
+    proc = node_run(script, JS, _DRIVER, capture_output=True, text=True)
     assert proc.returncode == 0, proc.stderr
     out = json.loads(proc.stdout)
     first = out["first"]
