@@ -4,10 +4,6 @@
  */
 // One scope per view: every view loads into the same page, so no top-level name may leak (body left unindented on purpose).
 (function () {
-function GH_OFF(labDir) {
-  var dir = labDir ? String(labDir) : "~/atlas-lab";
-  return "PRs and CI are off. To see them here, turn GitHub on in " + dir + "/atlas.json. Heliopause then asks GitHub through your own gh. The README shows how.";
-}
 var GH_UNREADABLE = "◇ GitHub couldn't be read, so PRs and CI aren't shown. If gh isn't signed in, run gh auth login in a terminal on this computer. This fills in on the next refresh.";
 var DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 var STATE = {
@@ -267,10 +263,20 @@ function link(parent, cls, label, href) {
   return node;
 }
 
+function appendGhOff(note, labDir) {
+  var dir = labDir ? String(labDir) : "~/atlas-lab";
+  var tx = el(note, "span", "");
+  tx.appendChild(document.createTextNode(" PRs and CI are off. To see them here, turn GitHub on in "));
+  text(tx, "span", "mono", dir + "/atlas.json");
+  tx.appendChild(document.createTextNode(". Heliopause then asks GitHub through your own "));
+  text(tx, "span", "mono", "gh");
+  tx.appendChild(document.createTextNode(". The README shows how."));
+}
+
 function paintNote(parent, labDir) {
   var note = el(parent, "div", "td-note");
   text(note, "span", "m", "○");
-  note.appendChild(document.createTextNode(" " + GH_OFF(labDir)));
+  appendGhOff(note, labDir);
 }
 
 function paintUnread(parent) {

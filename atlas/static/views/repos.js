@@ -4,10 +4,6 @@
  */
 // One scope per view: every view loads into the same page, so no top-level name may leak (body left unindented on purpose).
 (function () {
-function GH_OFF(labDir) {
-  var dir = labDir ? String(labDir) : "~/atlas-lab";
-  return "PRs and CI are off. To see them here, turn GitHub on in " + dir + "/atlas.json. Heliopause then asks GitHub through your own gh. The README shows how.";
-}
 var GH_UNREADABLE = "◇ GitHub couldn't be read, so PRs and CI aren't shown. If gh isn't signed in, run gh auth login in a terminal on this computer. This fills in on the next refresh.";
 var REPOS_EMPTY = "Heliopause shows the repos you ticked in setup.";
 var DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
@@ -214,7 +210,17 @@ function link(parent, cls, label, href) {
   return node;
 }
 
-function paintNote(parent, mark, sentence, wait) {
+function appendGhOff(note, labDir) {
+  var dir = labDir ? String(labDir) : "~/atlas-lab";
+  var tx = el(note, "span", "");
+  tx.appendChild(document.createTextNode(" PRs and CI are off. To see them here, turn GitHub on in "));
+  text(tx, "span", "mono", dir + "/atlas.json");
+  tx.appendChild(document.createTextNode(". Heliopause then asks GitHub through your own "));
+  text(tx, "span", "mono", "gh");
+  tx.appendChild(document.createTextNode(". The README shows how."));
+}
+
+function paintNote(parent, mark, labDir, wait) {
   var note = el(parent, "div", "td-note" + (wait ? " wait" : ""));
   if (wait) {
     text(note, "span", "m", GH_UNREADABLE.charAt(0));
@@ -222,7 +228,7 @@ function paintNote(parent, mark, sentence, wait) {
     return note;
   }
   text(note, "span", "m", mark);
-  note.appendChild(document.createTextNode(" " + sentence));
+  appendGhOff(note, labDir);
   return note;
 }
 
@@ -309,7 +315,7 @@ function paintCard(parent, card, mode, generated, labDir) {
   if (mode === "off") {
     var off = el(article, "div", "rp-grp");
     text(off, "h3", "", "PRs and CI");
-    paintNote(off, "○", GH_OFF(labDir), false);
+    paintNote(off, "○", labDir, false);
   } else if (mode === "on") {
     var prs = el(article, "div", "rp-grp");
     text(prs, "h3", "", "PRs and CI");
@@ -332,7 +338,7 @@ function paint(rootEl, data) {
     text(titles, "h1", "", cards.length ? titleText(cards) : "No repos yet.");
     text(titles, "p", "sub", subLine(data));
     text(head, "span", "live", "Live");
-    if (mode === "out") paintNote(view, "◇", GH_UNREADABLE, true);
+    if (mode === "out") paintNote(view, "◇", null, true);
     if (!cards.length) {
       text(el(view, "div", "td-empty"), "p", "", REPOS_EMPTY);
     } else {

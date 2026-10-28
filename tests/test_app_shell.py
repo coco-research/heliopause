@@ -373,18 +373,16 @@ function fail(msg) {
     await flush();
     text = root.textContent;
     if (text.indexOf("2 jobs") < 0) fail("factory wire");
-    if (text.indexOf("Columns") < 0) fail("columns switch");
+    if (text.indexOf("Columns") >= 0) fail("columns switch is gone");
     var links = queryAll(root, "a");
     var plan = null;
     var map = null;
     for (var pi = 0; pi < links.length; pi++) {
       if (links[pi].textContent === "Show the plan" && String(links[pi].href).indexOf("#/messages?thread=m-ask-1") >= 0) plan = links[pi];
-      if (links[pi].textContent === "Map" && links[pi].href === "/map") map = links[pi];
+      if (links[pi].href === "/map") map = links[pi];
     }
     if (!plan) fail("show the plan");
-    if (!map) fail("map link");
-    var columns = button("Columns");
-    if (!columns || columns.getAttribute("aria-pressed") !== "true") fail("columns pressed");
+    if (map) fail("no link to the old map");
     stop();
     process.stdout.write("ok\n");
     process.exit(0);
@@ -464,6 +462,13 @@ def test_decline_reasons_are_the_four_chips():
     assert 'answer: "approve"' in NOW_JS
     assert 'answer: "decline"' in NOW_JS
     assert "// ponytail: polling every 5s, SSE later if it matters" in NOW_JS
+
+
+def test_now_has_no_link_to_the_old_map():
+    css = (STATIC / "app.css").read_text(encoding="utf-8")
+    js = (STATIC / "views" / "now.js").read_text(encoding="utf-8")
+    assert "co-view" not in css
+    assert '"/map"' not in js
 
 
 def test_no_inline_onclick():

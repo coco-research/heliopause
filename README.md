@@ -28,17 +28,12 @@ On a managed computer? Check its rules before you install, and read INSTALL.md f
 Paste this into Claude Code, Codex, or any coding agent:
 
 ```text
-Install Heliopause v0.7.1 from https://github.com/coco-research/heliopause by following its INSTALL.md at the v0.7.1 tag.
+Install Heliopause v0.7.2 from https://github.com/coco-research/heliopause by following its INSTALL.md at the v0.7.2 tag.
 ```
 
 [INSTALL.md](INSTALL.md) tells your agent to show you each step and wait for your yes before it changes anything outside `~/atlas-lab`.
 
-<p align="center">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="docs/readme/now-dark.webp">
-    <img src="docs/readme/now-light.webp" alt="The Now view: a one-line status at the top, then a map of agents in columns, with lines for the messages between them" width="100%">
-  </picture>
-</p>
+<picture><source media="(prefers-color-scheme: dark)" srcset="docs/readme/hero-dark.webp"><img src="docs/readme/hero.webp" alt="A transit-style map: ink lines and evenly spaced square stations, with blue dots marking stops"></picture>
 
 <sub>A sample company, not real data. This is an early preview: expect rough edges.</sub>
 
@@ -50,25 +45,6 @@ Heliopause by Coco Research gives your AI tools a Lead and roles, like a small c
 - **Agents:** each agent as working, idle, blocked, or needs you, with its latest line.
 - **Work:** open pull requests and CI results, shown as problems, plus alerts with a Done button.
 - **A sample company** to look at before you point it at your own folders.
-
-<table>
-  <tr>
-    <td width="50%">
-      <picture>
-        <source media="(prefers-color-scheme: dark)" srcset="docs/readme/agents-dark.webp">
-        <img src="docs/readme/agents-light.webp" alt="The Agents view: a table of agents with their state and latest headline">
-      </picture>
-      <p align="center"><sub>Agents: who is doing what</sub></p>
-    </td>
-    <td width="50%">
-      <picture>
-        <source media="(prefers-color-scheme: dark)" srcset="docs/readme/work-dark.webp">
-        <img src="docs/readme/work-light.webp" alt="The Work view: problems and alerts">
-      </picture>
-      <p align="center"><sub>Work: what is waiting or broken</sub></p>
-    </td>
-  </tr>
-</table>
 
 ## What it isn't
 
@@ -82,7 +58,7 @@ Heliopause by Coco Research gives your AI tools a Lead and roles, like a small c
 You need `git` and `python3` 3.9 or newer. The optional plugin step also needs the Claude Code `claude` command on your PATH.
 
 ```bash
-git clone --branch v0.7.1 --depth 1 https://github.com/coco-research/heliopause ~/Heliopause
+git clone --branch v0.7.2 --depth 1 https://github.com/coco-research/heliopause ~/Heliopause
 cd ~/Heliopause
 python3 -B -m atlas adopt --scan
 python3 -B -m atlas adopt --apply --lead-name Ada
@@ -100,7 +76,7 @@ python3 -B -m atlas doctor
 
 `hooks: not connected` and `memory: not included in this build` are expected in this version. The plugin carries the hook.
 
-On a managed computer, use option 1 in [INSTALL.md](INSTALL.md) (download the v0.7.1 release and check its sha256).
+On a managed computer, use option 1 in [INSTALL.md](INSTALL.md) (download the v0.7.2 release and check its sha256).
 
 ## What it reads and writes
 
@@ -154,16 +130,21 @@ Release zips come with a signed manifest. The signing key fingerprint is `SHA256
 Before you unzip, check the download is ours. You need OpenSSH 8.1 or later. Recent macOS versions include it; check with `ssh -V`. In the folder with the four files, run:
 
 ```
-shasum -a 256 -c --status heliopause-v0.7.1.zip.sha256 &&
+shasum -a 256 -c --status heliopause-v0.7.2.zip.sha256 &&
 echo 'atlas-release namespaces="atlas-release" ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIArkj2zdOYSu0g8yfYV7Vru1PD1bUM/CKUUZ+QX2bXEV' > heliopause-allowed-signers &&
-ssh-keygen -Y verify -f heliopause-allowed-signers -I atlas-release -n atlas-release -s heliopause-v0.7.1.manifest.sig < heliopause-v0.7.1.manifest > /dev/null &&
-grep -qF "\"sha256\": \"$(shasum -a 256 heliopause-v0.7.1.zip | cut -c1-64)\"" heliopause-v0.7.1.manifest &&
-grep -qF '"filename": "heliopause-v0.7.1.zip"' heliopause-v0.7.1.manifest &&
-echo "Verified: heliopause-v0.7.1.zip is the signed v0.7.1 release." ||
+ssh-keygen -Y verify -f heliopause-allowed-signers -I atlas-release -n atlas-release \
+  -s heliopause-v0.7.2.manifest.sig \
+  < heliopause-v0.7.2.manifest > /dev/null &&
+grep -qF "\"sha256\": \"$(shasum -a 256 heliopause-v0.7.2.zip | cut -c1-64)\"" \
+  heliopause-v0.7.2.manifest &&
+grep -qF '"filename": "heliopause-v0.7.2.zip"' \
+  heliopause-v0.7.2.manifest &&
+echo "Verified: heliopause-v0.7.2.zip is the signed" \
+  "v0.7.2 release." ||
 { echo "NOT VERIFIED: do not unzip. See SECURITY.md." >&2; false; }
 ```
 
-It should print `Verified: heliopause-v0.7.1.zip is the signed v0.7.1 release.` If it doesn't, don't unzip, and see SECURITY.md.
+It should print `Verified: heliopause-v0.7.2.zip is the signed v0.7.2 release.` If it doesn't, don't unzip, and see SECURITY.md.
 
 Signing, the trust anchor, and emergency revocation are in [SECURITY.md](SECURITY.md).
 
@@ -180,4 +161,4 @@ Then delete the three folders it made: `~/Heliopause`, `~/atlas-lab`, and `~/.at
 
 MIT. Copyright Coco Research.
 
-Also from Coco Research: [Coco SI](https://github.com/coco-research/coco)
+Also from Coco Research: [Coco Super Intelligence](https://github.com/coco-research/coco)

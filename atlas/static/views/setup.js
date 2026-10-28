@@ -424,7 +424,11 @@
     if (!check.ok) {
       root.appendChild(text("h1", "", "Almost set up."));
       root.appendChild(text("p", "bad", "\u25B2 Messages didn't come back from " + check.member + "'s queue, so Heliopause can't carry jobs yet."));
-      root.appendChild(text("p", "help", "Run cd ~/Heliopause && python3 -B -m atlas doctor in a terminal, then try again."));
+      var help = el("p", "help");
+      help.appendChild(document.createTextNode("Run "));
+      help.appendChild(text("span", "mono", "cd ~/Heliopause && python3 -B -m atlas doctor"));
+      help.appendChild(document.createTextNode(" in a terminal, then try again."));
+      root.appendChild(help);
       actions(root, [btn("Try again", "btn btn-accent", runReady), nowLink(false)]);
       return;
     }

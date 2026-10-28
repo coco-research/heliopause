@@ -36,7 +36,9 @@ In scope: the server, its JSON API, and the page.
 
 Releases are signed with a dedicated ed25519 SSH key. The private key stays in the ssh-agent (on the release Mac, the macOS keychain). `scripts/release-zip.sh` signs with `ssh-keygen -Y sign -n atlas-release -f "$ATLAS_SIGNING_PUBKEY"` and reads only that public key file. Without `ATLAS_SIGNING_PUBKEY`, or with no matching identity in the agent, the script stops and writes nothing.
 
-The signature covers a manifest, `heliopause-v0.7.1.manifest`, not the zip. The manifest is JSON: version, filename, size, sha256, and a UTC date. The signature file is `heliopause-v0.7.1.manifest.sig`.
+<!-- x-release-please-start-version -->
+The signature covers a manifest, `heliopause-v0.7.2.manifest`, not the zip. The manifest is JSON: version, filename, size, sha256, and a UTC date.
+The signature file is `heliopause-v0.7.2.manifest.sig`.
 
 Heliopause 0.7 has no automatic updater. To update, download the new release and run the same check above before you unzip it.
 
@@ -45,16 +47,23 @@ The public key fingerprint is `SHA256:BhX36VYf09D8ozPzKQ76hAQEQjJ75y6pR+O4UNkeQC
 Before you unzip, check the download is ours. You need OpenSSH 8.1 or later. Recent macOS versions include it; check with `ssh -V`. In the folder with the four files, run:
 
 ```
-shasum -a 256 -c --status heliopause-v0.7.1.zip.sha256 &&
+shasum -a 256 -c --status heliopause-v0.7.2.zip.sha256 &&
 echo 'atlas-release namespaces="atlas-release" ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIArkj2zdOYSu0g8yfYV7Vru1PD1bUM/CKUUZ+QX2bXEV' > heliopause-allowed-signers &&
-ssh-keygen -Y verify -f heliopause-allowed-signers -I atlas-release -n atlas-release -s heliopause-v0.7.1.manifest.sig < heliopause-v0.7.1.manifest > /dev/null &&
-grep -qF "\"sha256\": \"$(shasum -a 256 heliopause-v0.7.1.zip | cut -c1-64)\"" heliopause-v0.7.1.manifest &&
-grep -qF '"filename": "heliopause-v0.7.1.zip"' heliopause-v0.7.1.manifest &&
-echo "Verified: heliopause-v0.7.1.zip is the signed v0.7.1 release." ||
+ssh-keygen -Y verify -f heliopause-allowed-signers -I atlas-release -n atlas-release \
+  -s heliopause-v0.7.2.manifest.sig \
+  < heliopause-v0.7.2.manifest > /dev/null &&
+grep -qF "\"sha256\": \"$(shasum -a 256 heliopause-v0.7.2.zip | cut -c1-64)\"" \
+  heliopause-v0.7.2.manifest &&
+grep -qF '"filename": "heliopause-v0.7.2.zip"' \
+  heliopause-v0.7.2.manifest &&
+echo "Verified: heliopause-v0.7.2.zip is the signed" \
+  "v0.7.2 release." ||
 { echo "NOT VERIFIED: do not unzip. See SECURITY.md." >&2; false; }
 ```
 
-It should print `Verified: heliopause-v0.7.1.zip is the signed v0.7.1 release.` If it doesn't, don't unzip, and see SECURITY.md.
+It should print `Verified: heliopause-v0.7.2.zip is the signed
+v0.7.2 release.` If it doesn't, don't unzip, and see SECURITY.md.
+<!-- x-release-please-end -->
 
 ### Emergency revocation
 
