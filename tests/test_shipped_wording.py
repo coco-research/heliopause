@@ -54,7 +54,8 @@ def test_readme_names_the_hooks_and_roles_routes() -> None:
     # Both routes are served (atlas/__main__.py); the README lists them and says hooks are read-only.
     text = (ROOT / "README.md").read_text(encoding="utf-8")
     assert "`GET /api/hooks`, and, in lab mode, `GET /api/roles`." in text
-    assert "`atlas hooks-list` only read hook metadata" in text
+    assert "`atlas hooks-list` only reads hook metadata" in text
+    assert "the lab's `.cursor/hooks.json`, and writes nothing" in text
 
 
 def test_docs_say_the_scan_never_opens_a_chat() -> None:

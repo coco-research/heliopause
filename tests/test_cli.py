@@ -219,13 +219,38 @@ def test_post_prints_line_and_bad_token_exits_1(capsys, tmp_path, monkeypatch):
         thread.join(timeout=2)
 
 
-def test_post_refuses_non_loopback(capsys, monkeypatch):
-    monkeypatch.setenv("ATLAS_URL", "http://example.com/atlas")
+@pytest.mark.parametrize("url", ("http://example.com/atlas", "example.com:80"))
+def test_post_refuses_non_loopback(capsys, monkeypatch, url):
+    monkeypatch.setenv("ATLAS_URL", url)
     monkeypatch.setenv("ATLAS_TOKEN_FILE", "/no/such/atlas-token")
     code, out, err = run(capsys, "post", "working", "Hello there", "more here")
     assert code == 1 and out == ""
     assert err == "atlas: post only talks to a loopback Heliopause\n"
     assert "Traceback" not in err
+
+
+def test_schemeless_loopback_read_and_write(capsys, tmp_path, monkeypatch):
+    board_for(tmp_path, [line(1, "VP", "working", "Existing")])
+    server = make_server(tmp_path, 0, watch=False)
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    try:
+        port = server.server_address[1]
+        monkeypatch.setenv("HOME", str(tmp_path))
+        monkeypatch.delenv("ATLAS_TOKEN_FILE", raising=False)
+        monkeypatch.setenv("ATLAS_URL", f"127.0.0.1:{port}")
+        code, out, err = run(capsys, "state", "owner")
+        assert code == 0 and err == "" and "label: Owner" in out
+        code, out, err = run(capsys, "post", "working", "Hello there", "more here")
+        assert code == 0 and err == ""
+        posted = out.rstrip("\n")
+        assert posted.split(" \u00b7 ")[1:] == ["VP", "working", "Hello there", "more here"]
+        board = tmp_path / ".heliopause" / "inbox" / "lab" / "board.md"
+        assert board.read_text(encoding="utf-8").splitlines()[-1] == posted
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join(timeout=2)
 
 
 def test_post_does_not_follow_redirect(capsys, monkeypatch):

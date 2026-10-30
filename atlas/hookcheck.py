@@ -24,10 +24,14 @@ _NAME, _EVENT, _HOST, _V6, _EQ = map(re.compile, (
 ))
 _KINDS = {"command", "http", "mcp_tool", "prompt", "agent"}
 
-def list_hooks(home: Path) -> list[dict]:
+def list_hooks(home: Path, lab: Path | None = None) -> list[dict]:
     try:
         rows = [row for tool, rel, ours in _SOURCES for row in _one(home / rel, home, tool, ours)]
         rows.extend(_grok(home))
+        # Cursor CLI reads <lab>/.cursor/hooks.json, not the home file. Skip when lab is home:
+        # that path is already the ".cursor/hooks.json" source above.
+        if lab is not None and not _same_dir(Path(lab), home):
+            rows.extend(_one(Path(lab) / ".cursor" / "hooks.json", home, "cursor", False))
         rows.sort(key=lambda row: (row["tool"], row["file"], row["event"] or "", row["name"] or ""))
         return rows
     except Exception:
@@ -45,10 +49,24 @@ def run(_argv: list[str] | None = None) -> int:
 def _bad(tool: str, file: str) -> dict:
     return {"tool": tool, "file": file, "event": None, "name": None, "ours": False, "problem": "couldn't read"}
 
+def _shown(path: Path, home: Path) -> str:
+    try:
+        return "~/" + path.relative_to(home).as_posix()
+    except ValueError:
+        return os.path.abspath(path)
+
+def _same_dir(left: Path, right: Path) -> bool:
+    if os.path.normpath(left) == os.path.normpath(right):
+        return True
+    try:
+        return left.resolve() == right.resolve()
+    except OSError:
+        return False
+
 def _one(path: Path, home: Path, tool: str, file_ours: bool) -> list[dict]:
     shown = None
     try:
-        shown = "~/" + path.relative_to(home).as_posix()
+        shown = _shown(path, home)
         try:
             info = path.lstat()
         except FileNotFoundError:
@@ -127,12 +145,22 @@ def _entries(entry):
         return [entry]
     return None
 
+def _connector(token: str) -> bool:
+    # plugin install writes the absolute path of Heliopause/connectors/<tool>/report.sh.
+    # Its name is report.sh, so the atlas/heliopause basename check misses it.
+    for name in ("cursor", "codex", "grok"):
+        suffix = f"Heliopause/connectors/{name}/report.sh"
+        if token == suffix or token.endswith("/" + suffix):
+            return True
+    return False
+
 def _meta(hook: dict, file_ours: bool) -> tuple[str, bool]:
     command = hook.get("command") if isinstance(hook.get("command"), str) else None
     url = hook.get("url") if isinstance(hook.get("url"), str) else None
     kind = hook.get("type") if isinstance(hook.get("type"), str) else None
-    base = _base(_token(command)) if command else ""
-    ours = file_ours or base in ("atlas", "heliopause") or any(bool(command) and mark in command for mark in _MARK)
+    token = _token(command) if command else ""
+    base = _base(token) if command else ""
+    ours = file_ours or base in ("atlas", "heliopause") or _connector(token) or any(bool(command) and mark in command for mark in _MARK)
     if kind == "http" or (kind is None and url is not None and command is None):
         return "http " + _host(url), ours
     if kind == "command" or command is not None:

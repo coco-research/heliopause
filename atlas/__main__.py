@@ -284,7 +284,7 @@ class Handler(BaseHTTPRequestHandler):
             self._send(200, body, "application/json", head=head)
         elif path == "/api/hooks":
             from atlas.hookcheck import list_hooks
-            body = json.dumps({"hooks": list_hooks(Path.home())}, ensure_ascii=False).encode("utf-8")
+            body = json.dumps({"hooks": list_hooks(Path.home(), LAB_DIR if LAB else None)}, ensure_ascii=False).encode("utf-8")
             self._send(200, body, "application/json", head=head)
         elif path == "/api/first-finding":
             from atlas.first_finding import NONE, top

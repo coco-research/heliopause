@@ -11,6 +11,7 @@ from pathlib import Path
 import pytest
 
 from atlas.__main__ import make_server
+from atlas.mcp import _PROTOCOL
 
 ROOT = Path(__file__).resolve().parents[1]
 TIMEOUT = 30  # a ceiling, not a wait: the shared self-hosted runner can take >10 s to start and exit a child under load (#75)
@@ -96,7 +97,7 @@ def test_session_lists_calls_and_posts(running):
         }}),
     ])
     assert [item["id"] for item in replies] == [1, 2, 3, 4]  # the notification got no reply
-    assert replies[0]["result"]["protocolVersion"] == "2024-11-05"
+    assert replies[0]["result"]["protocolVersion"] == _PROTOCOL
     assert replies[0]["result"]["capabilities"] == {"tools": {}}
     assert replies[0]["result"]["serverInfo"] == {"name": "atlas", "version": "0.1"}
     assert [tool["name"] for tool in replies[1]["result"]["tools"]] == [
@@ -141,7 +142,12 @@ def test_private_hq_ask_comes_back_content_free(running):
     }]
 
 
-@pytest.mark.parametrize("url", ("http://example.invalid:4300", "http://10.0.0.1:4300"))
+@pytest.mark.parametrize("url", (
+    "http://example.invalid:4300",
+    "http://10.0.0.1:4300",
+    "example.com:80",
+    "http://example.com",
+))
 @pytest.mark.parametrize("name,arguments", [
     ("atlas_state", {}),
     ("atlas_problems", {}),
@@ -157,6 +163,32 @@ def test_non_loopback_refused_before_any_request(tmp_path, url, name, arguments)
     result = replies[0]["result"]
     assert result["isError"] is True
     assert result["content"][0]["text"] == "atlas: only talks to a loopback Heliopause"
+
+
+def test_initialize_reports_own_protocol(tmp_path):
+    replies = exchange(_env("http://127.0.0.1:9", tmp_path), [
+        rpc(1, "initialize", {"protocolVersion": _PROTOCOL, "capabilities": {}}),
+    ])
+    assert "error" not in replies[0]
+    assert replies[0]["result"]["protocolVersion"] == _PROTOCOL
+
+
+def test_ping_returns_empty_result(tmp_path):
+    replies = exchange(_env("http://127.0.0.1:9", tmp_path), [rpc(1, "ping")])
+    assert "error" not in replies[0]
+    assert replies[0]["result"] == {}
+
+
+@pytest.mark.parametrize("form", ("localhost:{port}", "127.0.0.1:{port}"))
+def test_schemeless_loopback_reaches_the_server(running, form):
+    url, root, _board = running
+    port = url.rsplit(":", 1)[1]
+    replies = exchange(_env(form.format(port=port), root), [
+        rpc(1, "tools/call", {"name": "atlas_state", "arguments": {}}),
+    ])
+    assert "error" not in replies[0]
+    assert replies[0]["result"].get("isError") is not True
+    assert _body(replies[0])["graph"]["nodes"]["owner"]["label"] == "Owner"
 
 
 def test_down_is_error(tmp_path):

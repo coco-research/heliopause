@@ -512,15 +512,10 @@ HOME_TARGETS = (
     (r"\.atlas/lab", "adopt: the pointer to the last applied lab (plugin reads it)"),
     (r"\.atlas/plugin-hosts", "plugin: which hosts the plugin was installed for"),
     (r"Heliopause/marketplace/[^/].*", "plugin: the local marketplace copy, rebuilt from this package"),
+    (r"Heliopause/connectors/runtime", "plugin: where Python, Heliopause and the lab are, read by the Cursor hook script"),
     (r"\.atlas/marketplace/[^/].*", "plugin: where 0.6 kept the marketplace copy; only removed now"),
     (r"\.atlas/hooks/atlas-(?:hook-start|recall-hook)-[0-9a-f]{12}", "hooks: owner-only hook scripts that settings.json runs"),
     (r"\.claude/settings\.json", "hooks and uninstall: the Claude Code hooks registration"),
-    (r"\.cursor/hooks\.json", "connect: Cursor's hook file"),
-    (r"\.cursor/hooks\.json\.heliopause-bak-\d{8}T\d{6}\d{6}Z(?:-\d+)?", "connect: backup of Cursor's hooks.json, named <file>.heliopause-bak-<YYYYMMDDTHHMMSSFFFFFFZ>[-n]"),
-    (r"\.codex/hooks\.json", "connect: Codex's hook file"),
-    (r"\.codex/hooks\.json\.heliopause-bak-\d{8}T\d{6}\d{6}Z(?:-\d+)?", "connect: backup of Codex's hooks.json, named <file>.heliopause-bak-<YYYYMMDDTHHMMSSFFFFFFZ>[-n]"),
-    (r"\.grok/hooks/heliopause\.json", "connect: Grok's hook file"),
-    (r"\.grok/hooks/heliopause\.json\.heliopause-bak-\d{8}T\d{6}\d{6}Z(?:-\d+)?", "connect: backup of Grok's heliopause.json, named <file>.heliopause-bak-<YYYYMMDDTHHMMSSFFFFFFZ>[-n]"),
 )
 # Optional add-ons that are not in every build add their exact files here (allow_home), at import.
 _ADDED_TARGETS: list = []

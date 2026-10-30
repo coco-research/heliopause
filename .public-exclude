@@ -28,9 +28,6 @@ atlas/legacy.json => {}
 # (v0.3.0 included). directory.json is read at import by brief.py.
 # demo_traffic.py is the sign-off writer. This file names the lab docs above.
 atlas/directory.json => {}
-# connect.py writes Cursor/Codex/Grok hook files with no undo yet; out of 0.7 (Tess, ask-0461).
-atlas/connect.py
-tests/test_connect.py
 # Repo tools: none of them runs from a zip (no .git), and the demo ones name internal nodes.
 scripts/
 .public-exclude

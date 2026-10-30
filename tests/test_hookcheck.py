@@ -150,3 +150,78 @@ def test_unreadable(tmp_path):
 def test_missing_home(tmp_path):
     missing = tmp_path / "nope"
     assert list_hooks(missing) == [] and not missing.exists()
+
+def _cursor_lab(home: Path) -> Path:
+    lab = home / "atlas-lab"
+    _write(lab / ".cursor/hooks.json", {"version": 1, "hooks": {"sessionStart": [
+        {"command": f"{home}/Heliopause/connectors/cursor/report.sh"},
+    ]}})
+    return lab
+
+_LAB_ROW = {
+    "tool": "cursor", "file": "~/atlas-lab/.cursor/hooks.json", "event": "sessionStart", "name": "report.sh", "ours": True,
+}
+
+def test_lab_cursor_file_counts_connector_as_ours(tmp_path):
+    home = tmp_path / "home"
+    home.mkdir()
+    lab = _cursor_lab(home)
+    assert list_hooks(home, lab) == [_LAB_ROW]
+
+def test_list_hooks_without_lab_skips_the_lab_file(tmp_path):
+    home = tmp_path / "home"
+    home.mkdir()
+    _cursor_lab(home)
+    assert list_hooks(home) == []
+
+def test_symlinked_lab_hooks_file_is_unreadable(tmp_path):
+    secret = "followed-symlink-hook"
+    home = tmp_path / "home"
+    home.mkdir()
+    lab = home / "atlas-lab"
+    target = tmp_path / "elsewhere.json"
+    target.write_text(json.dumps({"hooks": {"sessionStart": [{"command": f"/bin/{secret}"}]}}), encoding="utf-8")
+    link = lab / ".cursor" / "hooks.json"
+    link.parent.mkdir(parents=True)
+    link.symlink_to(target)
+    rows = list_hooks(home, lab)
+    blob = json.dumps(rows)
+    assert rows == [_problem("cursor", "~/atlas-lab/.cursor/hooks.json")]
+    assert secret not in blob and "elsewhere" not in blob
+
+def test_home_rows_stay_beside_the_lab_file(tmp_path):
+    home = _home(tmp_path)
+    lab = _cursor_lab(home)
+    rows = list_hooks(home, lab)
+    expected = [*_EXPECTED, _LAB_ROW]
+    expected.sort(key=lambda row: (row["tool"], row["file"], row["event"] or "", row["name"] or ""))
+    assert rows == expected
+
+def test_lab_that_is_home_is_not_listed_twice(tmp_path):
+    home = _home(tmp_path)
+    assert list_hooks(home, home) == _EXPECTED
+
+def test_lab_outside_home_shows_the_absolute_path(tmp_path):
+    home = tmp_path / "home"
+    home.mkdir()
+    lab = tmp_path / "outside"
+    _write(lab / ".cursor/hooks.json", {"version": 1, "hooks": {"sessionStart": [
+        {"command": f"{home}/Heliopause/connectors/cursor/report.sh"},
+    ]}})
+    shown = os.path.abspath(lab / ".cursor" / "hooks.json")
+    assert list_hooks(home, lab) == [{
+        "tool": "cursor", "file": shown, "event": "sessionStart", "name": "report.sh", "ours": True,
+    }]
+
+def test_codex_and_grok_connector_paths_count_as_ours(tmp_path):
+    home = tmp_path / "home"
+    _write(home / ".codex/hooks.json", {"hooks": {"Stop": [
+        {"command": f"{home}/Heliopause/connectors/codex/report.sh"},
+    ]}})
+    _write(home / ".grok/hooks/other.json", {"hooks": {"PreToolUse": [
+        {"command": f"{home}/Heliopause/connectors/grok/report.sh"},
+    ]}})
+    rows = list_hooks(home)
+    assert {(row["tool"], row["ours"], row["name"]) for row in rows} == {
+        ("codex", True, "report.sh"), ("grok", True, "report.sh"),
+    }

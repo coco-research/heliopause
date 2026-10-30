@@ -418,6 +418,24 @@
     ]);
   }
 
+  function findingSentence(line) {
+    var span = el("span");
+    var rest = " " + line;
+    var at = 0;
+    while (at < rest.length) {
+      var open = rest.indexOf("`", at);
+      var close = open < 0 ? -1 : rest.indexOf("`", open + 1);
+      if (open < 0 || close < 0) {
+        span.appendChild(document.createTextNode(rest.slice(at)));
+        break;
+      }
+      if (open > at) span.appendChild(document.createTextNode(rest.slice(at, open)));
+      span.appendChild(text("span", "mono", rest.slice(open + 1, close)));
+      at = close + 1;
+    }
+    return span;
+  }
+
   function paintReady(root) {
     header(root, 5);
     var check = checkResult || { ok: false, ms: 0, member: "Builder" };
@@ -438,7 +456,8 @@
       root.appendChild(text("p", "lead", "Here's one thing I found in your setup:"));
       var flag = el("p", "flag");
       flag.appendChild(text("span", "mark", "\u25C7"));
-      flag.appendChild(document.createTextNode(" " + pack.finding.line));
+      // One span: a flex parent lays each extra child out as its own column.
+      flag.appendChild(findingSentence(pack.finding.line));
       root.appendChild(flag);
       var href = FINDING_HREF[pack.finding.link];
       if (href) {

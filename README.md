@@ -28,7 +28,7 @@ On a managed computer? Check its rules before you install, and read INSTALL.md f
 Paste this into Claude Code, Codex, or any coding agent:
 
 ```text
-Install Heliopause v0.7.2 from https://github.com/coco-research/heliopause by following its INSTALL.md at the v0.7.2 tag.
+Install Heliopause v0.7.3 from https://github.com/coco-research/heliopause by following its INSTALL.md at the v0.7.3 tag.
 ```
 
 [INSTALL.md](INSTALL.md) tells your agent to show you each step and wait for your yes before it changes anything outside `~/atlas-lab`.
@@ -58,7 +58,7 @@ Heliopause by Coco Research gives your AI tools a Lead and roles, like a small c
 You need `git` and `python3` 3.9 or newer. The optional plugin step also needs the Claude Code `claude` command on your PATH.
 
 ```bash
-git clone --branch v0.7.2 --depth 1 https://github.com/coco-research/heliopause ~/Heliopause
+git clone --branch v0.7.3 --depth 1 https://github.com/coco-research/heliopause ~/Heliopause
 cd ~/Heliopause
 python3 -B -m atlas adopt --scan
 python3 -B -m atlas adopt --apply --lead-name Ada
@@ -76,7 +76,7 @@ python3 -B -m atlas doctor
 
 `hooks: not connected` and `memory: not included in this build` are expected in this version. The plugin carries the hook.
 
-On a managed computer, use option 1 in [INSTALL.md](INSTALL.md) (download the v0.7.2 release and check its sha256).
+On a managed computer, use option 1 in [INSTALL.md](INSTALL.md) (download the v0.7.3 release and check its sha256).
 
 ## What it reads and writes
 
@@ -87,7 +87,8 @@ Three steps write inside `~/atlas-lab` without asking: the scan report, the opti
 **What it reads**
 - The folders you point it at.
 - Your AI tools' hook and settings files, to list your hooks: `~/.claude/settings.json`, `~/.claude/settings.local.json`, `~/.cursor/hooks.json`, `~/.codex/hooks.json` and `~/.grok/hooks/*.json`. From `~/.claude.json`, `~/.cursor/mcp.json` and your other tools' MCP files it reads only the server names.
-- `GET /api/hooks` and `atlas hooks-list` only read hook metadata from the home directory (tool, file, event, a short name, ours) and write nothing. The page's local routes include `GET /api/hooks`, and, in lab mode, `GET /api/roles`.
+- `atlas hooks-list` only reads hook metadata from the home directory (tool, file, event, a short name, ours) and writes nothing. `GET /api/hooks` reads those same home files and, in lab mode, the lab's `.cursor/hooks.json`, and writes nothing. The page's local routes include `GET /api/hooks`, and, in lab mode, `GET /api/roles`.
+- `atlas plugin install --host cursor` and `atlas plugin uninstall --host cursor` read `~/atlas-lab/.cursor/hooks.json` to show you the diff before they change anything.
 - When setup looks for your tools: each supported tool's command on your PATH, its app in `/Applications`, and its settings folder or file in your home folder (`~/.claude`, `~/.cursor`, `~/.codex`, `~/.grok`, `~/.gemini`, `~/.config/opencode`, `~/.aider.conf.yml`, `~/.copilot`). It only checks that they exist. It doesn't open them.
 - The names and sizes of `~/.claude/CLAUDE.md`, the files in `~/.cursor/rules/`, and any `CLAUDE.md` or `AGENTS.md` in your project folders. It does not read what is in them.
 - If you turn GitHub on in `~/atlas-lab/atlas.json` (`"github": {"enabled": true}` plus your `org` and `repos`), it reads their open pull requests and checks through your own `gh` command. It only reads.
@@ -101,6 +102,7 @@ Three steps write inside `~/atlas-lab` without asking: the scan report, the opti
 | `atlas adopt --scan` | One report: `~/atlas-lab/.atlas/adopt-scan.json`. It creates `~/atlas-lab` if it isn't there. | Delete that file. |
 | `atlas adopt --apply` | In `~/atlas-lab`: `CLAUDE.md`, `START-HERE.md`, `BUS.md`, `board.md`, `feed.md`, `atlas.json`, `.cursor/rules/atlas.mdc`, `bin/`, `nodes/`, empty work folders, and a backup and undo list in `~/atlas-lab/.atlas/`. Outside the lab it writes `~/.atlas/lab`, one line naming your lab. All of this happens only after it shows its plan and you run it again with `--yes`. | `atlas adopt --uninstall`. That keeps the scan report, the backup and any file you edited, so delete `~/atlas-lab` to remove those. |
 | `atlas plugin install --host claude` | Before it asks: the plugin files in `~/Heliopause/marketplace`. After your yes: `~/.atlas/plugin-hosts`. It then runs `claude plugin marketplace add` and `claude plugin install`, and Claude Code records the plugin in `~/.claude/settings.json` and `~/.claude/plugins/`. | `atlas plugin uninstall --host claude` |
+| `atlas plugin install --host cursor` | After it shows a diff and you answer y: if `~/atlas-lab/.cursor/hooks.json` already exists, a copy of it at `~/atlas-lab/.cursor/hooks.json.heliopause-bak-<time>`; one Heliopause entry per Cursor event in that file (other entries are kept); and one file, `~/Heliopause/connectors/runtime`, holding three local paths (mode 0600). | `atlas plugin uninstall --host cursor` removes exactly those entries and the runtime file. It keeps the backup copy and prints where it is, so delete that copy yourself if you don't need it. |
 | `atlas up` | Inside `~/atlas-lab`: on the first run only, a test job in `queue/done/echo-hello.md` and two lines in `board.md`. Its state (access token, alerts, notification log) goes in `~/atlas-lab/.atlas/`. While it runs, it also writes these, all inside `~/atlas-lab`: your role picks go to `~/atlas-lab/atlas.json`; Approve, Decline and marking a job (and a tool reporting a job's result) write message, lease and lock files (all mode 0600) in `~/atlas-lab/.heliopause/inbox/<role>/` and `~/atlas-lab/.heliopause/done/<role>/`; the setup check writes one probe file in `~/atlas-lab/.heliopause/inbox/factory/` and then deletes it. | Stop it with Ctrl-C, then delete `~/atlas-lab`. |
 | `atlas init` | A new `~/atlas-lab` (or the folder you give `--dir`) with the lab files, after it asks. | `atlas uninstall`. |
 | `atlas hooks` | Two hooks in `~/.claude/settings.json` (SessionStart and UserPromptSubmit), after it shows the change and you say yes. It also writes a backup in `~/atlas-lab/backups/` and two hook scripts in `~/atlas-lab/bin/`. You don't need this in 0.7, because the plugin carries the hook. Grok also runs hooks from this file; in a Grok session Heliopause's hooks only log. | `atlas uninstall`. It also deletes `~/atlas-lab`. |
@@ -108,6 +110,8 @@ Three steps write inside `~/atlas-lab` without asking: the scan report, the opti
 | `atlas adopt --mark FOLDER` | `~/atlas-lab/projects/<name>/START-HERE.md`, plus a line in `~/atlas-lab/atlas.json`. | `atlas adopt --unmark FOLDER` |
 | `atlas brief --edit --role NAME` | `~/atlas-lab/briefs/NAME.md`. Then it opens your editor. | `atlas brief --reset --role NAME` |
 | `atlas export` | `atlas.lock` in the folder you run it from (or the path you give `--out`). | Delete that file. |
+
+In our tests with the Cursor CLI 2026.10.22, hooks ran from the project's `.cursor/hooks.json` and not from `~/.cursor/hooks.json`, so Heliopause writes them in the lab.
 
 **Handing off work.** `python3 -m harness run --name claude|cursor` and `python3 -m atlas.dispatch` start an AI tool you already have, with a task, only when you run them. That tool sends the work to its own service.
 
@@ -130,21 +134,21 @@ Release zips come with a signed manifest. The signing key fingerprint is `SHA256
 Before you unzip, check the download is ours. You need OpenSSH 8.1 or later. Recent macOS versions include it; check with `ssh -V`. In the folder with the four files, run:
 
 ```
-shasum -a 256 -c --status heliopause-v0.7.2.zip.sha256 &&
+shasum -a 256 -c --status heliopause-v0.7.3.zip.sha256 &&
 echo 'atlas-release namespaces="atlas-release" ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIArkj2zdOYSu0g8yfYV7Vru1PD1bUM/CKUUZ+QX2bXEV' > heliopause-allowed-signers &&
 ssh-keygen -Y verify -f heliopause-allowed-signers -I atlas-release -n atlas-release \
-  -s heliopause-v0.7.2.manifest.sig \
-  < heliopause-v0.7.2.manifest > /dev/null &&
-grep -qF "\"sha256\": \"$(shasum -a 256 heliopause-v0.7.2.zip | cut -c1-64)\"" \
-  heliopause-v0.7.2.manifest &&
-grep -qF '"filename": "heliopause-v0.7.2.zip"' \
-  heliopause-v0.7.2.manifest &&
-echo "Verified: heliopause-v0.7.2.zip is the signed" \
-  "v0.7.2 release." ||
+  -s heliopause-v0.7.3.manifest.sig \
+  < heliopause-v0.7.3.manifest > /dev/null &&
+grep -qF "\"sha256\": \"$(shasum -a 256 heliopause-v0.7.3.zip | cut -c1-64)\"" \
+  heliopause-v0.7.3.manifest &&
+grep -qF '"filename": "heliopause-v0.7.3.zip"' \
+  heliopause-v0.7.3.manifest &&
+echo "Verified: heliopause-v0.7.3.zip is the signed" \
+  "v0.7.3 release." ||
 { echo "NOT VERIFIED: do not unzip. See SECURITY.md." >&2; false; }
 ```
 
-It should print `Verified: heliopause-v0.7.2.zip is the signed v0.7.2 release.` If it doesn't, don't unzip, and see SECURITY.md.
+It should print `Verified: heliopause-v0.7.3.zip is the signed v0.7.3 release.` If it doesn't, don't unzip, and see SECURITY.md.
 
 Signing, the trust anchor, and emergency revocation are in [SECURITY.md](SECURITY.md).
 

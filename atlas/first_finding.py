@@ -17,6 +17,8 @@ _LABEL = {
     "grok": "Grok",
 }
 _MISSING = "{name} is connected but has no Heliopause hook, so its work won't show here."
+# Appended to Cursor's missing-hook line. Backticks mark the command for the setup page.
+_CURSOR_FIX = "Run `atlas plugin install --host cursor` to add it."
 _UNREADABLE = "Heliopause couldn't read {name}'s hook file ({file}), so its hooks aren't listed."
 _REPO = (
     ("protection", "{repo}: Anyone with write access can push to main without a pull request."),
@@ -71,22 +73,25 @@ def _name(tool: str) -> str:
 
 
 def _missing(lab, home, _run) -> dict | None:
-    rows = hookcheck.list_hooks(Path(home))
+    rows = hookcheck.list_hooks(Path(home), lab)
     ours = {row["tool"] for row in rows if row.get("ours") is True}
     for tool in _connected(lab):
         if tool in ours:
             continue
+        line = _MISSING.format(name=_name(tool))
+        if tool == "cursor":
+            line = f"{line} {_CURSOR_FIX}"
         return {
             "kind": "hook_missing",
             "tool": tool,
-            "line": _MISSING.format(name=_name(tool)),
+            "line": line,
             "link": "Show the change",
         }
     return None
 
 
-def _unreadable(_lab, home, _run) -> dict | None:
-    for row in hookcheck.list_hooks(Path(home)):
+def _unreadable(lab, home, _run) -> dict | None:
+    for row in hookcheck.list_hooks(Path(home), lab):
         if not row.get("problem"):
             continue
         return {

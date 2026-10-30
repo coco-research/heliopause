@@ -128,8 +128,11 @@ class _Quiet(argparse.ArgumentParser):
         raise SystemExit(0)
 
 
+_TTY_NOTE = "This command reads a hook event from standard input. Your AI tool runs it with the event piped in, so there's nothing to type here."
+
+
 def run(argv: list[str] | None = None) -> int:
-    """`report --tool T --lab DIR` reads stdin and always exits 0 with no output."""
+    """`report --tool T --lab DIR` always exits 0 and prints nothing, except one line on stderr when stdin is a terminal."""
     parser = _Quiet(prog="atlas connector", add_help=False)
     parser.add_argument("verb")
     parser.add_argument("--tool", required=True)
@@ -137,6 +140,9 @@ def run(argv: list[str] | None = None) -> int:
     try:
         args = parser.parse_args(argv)
         if args.verb == "report":
+            if sys.stdin.isatty():
+                print(_TTY_NOTE, file=sys.stderr)
+                return 0
             report(Path(args.lab), args.tool, sys.stdin.buffer.read(_CAP + 1))
     except (SystemExit, Exception):
         return 0

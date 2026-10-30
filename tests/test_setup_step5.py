@@ -267,7 +267,9 @@ def test_setup_js_has_no_queue_prompt():
 
 
 @pytest.mark.skipif(shutil.which("node") is None, reason="node not installed")
+@pytest.mark.journey
 def test_setup_step5_view():
+    """J1: first run reaches Ready with a passing check and the Now link."""
     check = subprocess.run(["node", "--check", str(JS)], capture_output=True, text=True)
     assert check.returncode == 0, check.stderr
     proc = subprocess.run(["node", "-e", _HARNESS, str(JS)], capture_output=True, text=True, timeout=20)
@@ -291,7 +293,9 @@ def test_setup_check_ok_on_tmp_lab_leaves_no_file(tmp_path, monkeypatch):
     assert _probe_names(tmp_path) == []
 
 
+@pytest.mark.journey
 def test_setup_check_not_ok_when_inbox_cannot_be_written(tmp_path, monkeypatch):
+    """J6: the setup test check says not ok when the queue can't be written."""
     inbox = tmp_path / ".heliopause" / "inbox"
     inbox.mkdir(parents=True)
     blocker = inbox / "factory"

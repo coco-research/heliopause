@@ -1,6 +1,6 @@
 {
   "name": "heliopause",
-  "version": "0.7.2",
+  "version": "0.7.3",
   "description": "Heliopause lab lead. Injects the lab rules at session start and stays silent outside the lab.",
   "author": {
     "name": "Coco"

@@ -590,7 +590,9 @@ def test_js_parses() -> None:
 
 
 @pytest.mark.skipif(_NODE, reason="node missing")
+@pytest.mark.journey
 def test_today_and_repos_render() -> None:
+    """J18: Repos shows PRs and CI when GitHub is on, and the off copy when it is not."""
     proc = subprocess.run(
         ["node", "-e", _HARNESS, str(TODAY), str(REPOS)],
         capture_output=True, text=True,

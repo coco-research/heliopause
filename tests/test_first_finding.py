@@ -11,7 +11,10 @@ from atlas.first_finding import NONE, top
 from atlas.plugin import _first_run
 
 ROOT = Path(__file__).resolve().parents[1]
-_MISSING_LINE = "Cursor is connected but has no Heliopause hook, so its work won't show here."
+_CURSOR_FIX = "Run `atlas plugin install --host cursor` to add it."
+_MISSING_LINE = (
+    "Cursor is connected but has no Heliopause hook, so its work won't show here. " + _CURSOR_FIX
+)
 _WITH = (
     "Open with exactly one sentence: "
     f"'Here's one thing I found in your setup: {_MISSING_LINE}' "
@@ -198,6 +201,41 @@ def test_first_run_text(tmp_path, monkeypatch):
 def test_plugin_has_no_folder_list():
     text = (ROOT / "atlas" / "plugin.py").read_text(encoding="utf-8")
     assert text.count("10 most recent folders") == 0
+
+
+def _claude_ours(home):
+    path = home / ".claude" / "settings.json"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps({"hooks": {"SessionStart": [{"command": "/usr/bin/atlas"}]}}), encoding="utf-8")
+
+
+def test_lab_cursor_file_is_not_hook_missing(tmp_path):
+    home = tmp_path / "home"
+    lab = _lab(home, roles={"hq": "claude-code", "lab": "claude-code", "factory": ["cursor"]})
+    _claude_ours(home)
+    path = lab / ".cursor" / "hooks.json"
+    path.parent.mkdir(parents=True)
+    path.write_text(json.dumps({"version": 1, "hooks": {"sessionStart": [
+        {"command": f"{home}/Heliopause/connectors/cursor/report.sh"},
+    ]}}), encoding="utf-8")
+    found = top(lab, home)
+    assert not (found and found.get("kind") == "hook_missing" and found.get("tool") == "cursor")
+    assert found is None
+
+
+def test_cursor_missing_line_names_the_install(tmp_path):
+    home = tmp_path / "home"
+    lab = _lab(home, roles={"hq": "claude-code", "lab": "claude-code", "factory": ["cursor"]})
+    _claude_ours(home)
+    found = top(lab, home)
+    assert found["kind"] == "hook_missing" and found["tool"] == "cursor"
+    assert found["line"] == _MISSING_LINE
+    assert found["line"].endswith(" " + _CURSOR_FIX)
+
+
+def test_other_tool_missing_line_is_unchanged(tmp_path):
+    found = top(_lab(tmp_path, roles={"lab": "codex"}), _home(tmp_path))
+    assert found["line"] == "Codex is connected but has no Heliopause hook, so its work won't show here."
 
 
 def test_api_shape(tmp_path, monkeypatch):

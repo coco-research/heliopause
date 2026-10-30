@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import ast
 import hashlib
 import json
 import os
@@ -89,11 +90,44 @@ def test_public_tree_drops_private_workflows() -> None:
     assert ".github" in drops
 
 
-def test_public_tree_drops_connect() -> None:
-    # connect.py writes Cursor/Codex/Grok hook files with no undo yet, so it must not ship.
+def test_public_tree_ships_connect() -> None:
+    # connect.py ships from 0.7.3: plugin install --host cursor uses it behind a yes-gate, and plugin uninstall --host cursor undoes it (ask-0461's condition).
     drops, _ = _exclude((ROOT / ".public-exclude").read_text(encoding="utf-8"))
-    assert "atlas/connect.py" in drops
-    assert "tests/test_connect.py" in drops
+    assert "atlas/connect.py" not in drops
+    assert "tests/test_connect.py" not in drops
+
+
+def _atlas_modules(path: Path) -> set[str]:
+    tree = ast.parse(path.read_text(encoding="utf-8"))
+    names: set[str] = set()
+    # ast.walk: plugin.py also imports inside functions (first_finding, role_brief); those must ship too.
+    for node in ast.walk(tree):
+        if isinstance(node, ast.ImportFrom) and node.module == "atlas":
+            names.update(alias.name for alias in node.names)
+        elif isinstance(node, ast.ImportFrom) and (node.module or "").startswith("atlas."):
+            names.add(node.module.split(".")[1])
+        elif isinstance(node, ast.Import):
+            for alias in node.names:
+                head, _, rest = alias.name.partition(".")
+                if head == "atlas" and rest:
+                    names.add(rest.split(".", 1)[0])
+    return {name for name in names if not name.startswith("_")}
+
+
+def _ships(path: Path) -> None:
+    drops, _ = _exclude((ROOT / ".public-exclude").read_text(encoding="utf-8"))
+    modules = _atlas_modules(path)
+    assert modules
+    for name in modules:
+        assert f"atlas/{name}.py" not in drops
+
+
+def test_public_tree_ships_every_module_plugin_imports() -> None:
+    _ships(ROOT / "atlas" / "plugin.py")
+
+
+def test_public_tree_ships_every_module_connect_imports() -> None:
+    _ships(ROOT / "atlas" / "connect.py")
 
 
 @pytest.mark.skipif(_need_tools(), reason="git, zip, unzip, shasum, or ssh-keygen missing")

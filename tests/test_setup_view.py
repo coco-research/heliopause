@@ -187,7 +187,9 @@ def test_setup_source_sets_text_with_text_content():
 
 
 @pytest.mark.skipif(shutil.which("node") is None, reason="node not installed")
+@pytest.mark.journey
 def test_setup_view_project_field_and_empty_state():
+    """J3: with no supported tool, setup says so and pushes no roles."""
     check = subprocess.run(["node", "--check", str(JS)], capture_output=True, text=True)
     assert check.returncode == 0, check.stderr
     proc = subprocess.run(["node", "-e", _HARNESS, str(JS)], capture_output=True, text=True, timeout=20)
