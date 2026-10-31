@@ -107,7 +107,9 @@ def _get(port: int, path: str) -> int:
         conn.close()
 
 
+@pytest.mark.journey
 def test_runtime_stays_on_loopback(ac_net, tmp_path):
+    """J23: the server answers on loopback only, so "on your phone" is this Mac."""
     server = make_server(HOME, 0)
     thread = threading.Thread(target=server.serve_forever, daemon=True)
     thread.start()

@@ -213,9 +213,11 @@ def test_timeout_kills_process_group(tmp_path, monkeypatch):
     # The CLI does not forward HARNESS_FAKE. The wrapper sets the mode after exec.
     monkeypatch.setenv("PATH", str(wrap) + os.pathsep + os.environ.get("PATH", ""))
     started = time.monotonic()
-    code = main(["run", "--name", "claude", "--cwd", str(tmp_path), "--timeout", "1"])
-    # Grace is 5s after the 1s timeout. An immediate SIGKILL would finish in about a second.
-    assert time.monotonic() - started >= 5
+    # 3 s, not 1: on a busy runner the fake's Python start-up can outlast 1 s, so SIGTERM lands
+    # before it ignores SIGTERM and the run ends at once, which looks like a missing grace period.
+    code = main(["run", "--name", "claude", "--cwd", str(tmp_path), "--timeout", "3"])
+    # Grace is 5s after the timeout. An immediate SIGKILL would finish in about 3 s.
+    assert time.monotonic() - started >= 3 + 5
     child = int((tmp_path / "child.pid").read_text(encoding="utf-8"))
     grandchild = int((tmp_path / "grandchild.pid").read_text(encoding="utf-8"))
     assert code == 124

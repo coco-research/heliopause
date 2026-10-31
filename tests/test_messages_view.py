@@ -6,6 +6,8 @@ import shutil
 import subprocess
 from pathlib import Path
 
+import pytest
+
 ROOT = Path(__file__).resolve().parents[1]
 JS = ROOT / "atlas" / "static" / "views" / "messages.js"
 CSS = ROOT / "atlas" / "static" / "views" / "messages.css"
@@ -280,7 +282,9 @@ def test_states_match_shared_copy() -> None:
         assert bit in src
 
 
+@pytest.mark.journey
 def test_copy_job_template_matches_j8() -> None:
+    """J8: with self-start off, the Messages copy line is what the user starts in the tool."""
     src = _js()
     j8 = _j8()
     quotes = _quotes(j8)

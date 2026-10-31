@@ -2,6 +2,7 @@
 
 import json
 import os
+import pty
 import subprocess
 import sys
 from datetime import datetime, timezone
@@ -132,3 +133,39 @@ def test_symlinked_heliopause_is_not_followed(tmp_path):
     assert report(lab, "grok", raw) is False
     assert list(outside.rglob("*")) == []
     assert not any(os.path.isfile(p) for p in _files(lab))
+
+
+_TTY_NOTE = "This command reads a hook event from standard input. Your AI tool runs it with the event piped in, so there's nothing to type here.\n"
+
+
+def test_report_on_a_terminal_explains_and_writes_nothing(tmp_path):
+    lab = tmp_path / "lab"
+    lab.mkdir()
+    master, slave = pty.openpty()
+    try:
+        proc = subprocess.run(
+            [sys.executable, "-m", "atlas", "connector", "report", "--tool", "cursor", "--lab", str(lab)],
+            cwd=ROOT, stdin=slave, capture_output=True, timeout=20,
+        )
+    finally:
+        os.close(master)
+        os.close(slave)
+    assert proc.returncode == 0
+    assert proc.stderr == _TTY_NOTE.encode()
+    assert proc.stdout == b""
+    assert not (lab / ".heliopause").exists()
+
+
+def test_piped_cursor_event_writes_one_card(tmp_path):
+    lab = tmp_path / "lab"
+    lab.mkdir()
+    raw = json.dumps({
+        "hook_event_name": "sessionStart",
+        "conversation_id": "abc123",
+        "workspace_roots": ["/tmp/x/myrepo"],
+    }).encode()
+    proc = _cli(lab, "cursor", raw)
+    assert proc.returncode == 0
+    assert proc.stderr == b""
+    cards = [p for p in (lab / ".heliopause" / "cards" / "cursor").iterdir() if p.is_file()]
+    assert len(cards) == 1

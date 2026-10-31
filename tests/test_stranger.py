@@ -13,6 +13,7 @@ REPO = Path(__file__).resolve().parent.parent
 SCRIPT = REPO / "scripts" / "stranger-test.sh"
 
 
+@pytest.mark.journey
 def test_stranger_install_and_lifecycle():
     # ponytail: slow-but-run test, executes a fresh clone and full lifecycle in <60s.
     if not shutil.which("bash"):

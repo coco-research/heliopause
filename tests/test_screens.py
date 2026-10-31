@@ -670,7 +670,9 @@ def _lab_config(lab: Path) -> None:
     (lab / "atlas.json").write_text(json.dumps(doc), encoding="utf-8")
 
 
+@pytest.mark.journey
 def test_http_lab_routes(tmp_path: Path) -> None:
+    """J9: declining an ask with a reason answers it, through the HTTP API."""
     lab = tmp_path / "lab"
     lab.mkdir()
     _lab_config(lab)

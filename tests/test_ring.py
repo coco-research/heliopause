@@ -4,6 +4,8 @@ import sys
 import threading
 from contextlib import contextmanager
 
+import pytest
+
 from atlas.__main__ import make_server
 from atlas.ring import _osascript, ring
 from test_alerts import post
@@ -92,7 +94,9 @@ def test_rings_file_is_0600(tmp_path):
     assert stat.S_IMODE((tmp_path / ".atlas" / "rings.json").stat().st_mode) == 0o600
 
 
+@pytest.mark.journey
 def test_server_rings_once_and_not_on_duplicate(tmp_path, monkeypatch):
+    """J15: an alert posted over HTTP rings the Mac once, page or no page."""
     calls = []
     monkeypatch.setattr(sys, "platform", "darwin")
     monkeypatch.setattr("atlas.ring._osascript", lambda title, text: calls.append((title, text)))

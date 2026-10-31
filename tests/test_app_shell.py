@@ -484,7 +484,9 @@ def test_shell_scripts_parse():
 
 
 @pytest.mark.skipif(shutil.which("node") is None, reason="node not installed")
+@pytest.mark.journey
 def test_now_view_renders_fixture_json():
+    """J21: empty first day renders "Nothing yet" on Now."""
     proc = subprocess.run(
         ["node", "-e", _HARNESS, str(FIXTURE), str(STATIC / "views" / "now.js")],
         capture_output=True, text=True, timeout=15,

@@ -290,6 +290,39 @@ def test_main_passes_demo(tmp_path, monkeypatch):
         seen["httpd"].server_close()
 
 
+def test_api_hooks_includes_the_lab_row(tmp_path, monkeypatch):
+    home = tmp_path / "home"
+    lab = home / "atlas-lab"
+    command = f"{home}/Heliopause/connectors/cursor/report.sh"
+    path = lab / ".cursor" / "hooks.json"
+    path.parent.mkdir(parents=True)
+    path.write_text(json.dumps({"version": 1, "hooks": {"sessionStart": [{"command": command}]}}), encoding="utf-8")
+    monkeypatch.setenv("HOME", str(home))
+    assert Path.home() == home
+    root = tmp_path / "srv"
+    root.mkdir()
+    server = make_server(root, 0, watch=False)
+    # make_server imports collect and binds LAB. Set the lab after that, before the request.
+    monkeypatch.setattr("atlas.__main__.LAB", True)
+    monkeypatch.setattr("atlas.__main__.LAB_DIR", lab)
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    try:
+        status, _headers, body = _request(server, "GET", "/api/hooks")
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join(timeout=2)
+    assert status == 200
+    assert {
+        "tool": "cursor",
+        "file": "~/atlas-lab/.cursor/hooks.json",
+        "event": "sessionStart",
+        "name": "report.sh",
+        "ours": True,
+    } in json.loads(body)["hooks"]
+
+
 def test_server_start_asks_no_dns(tmp_path, monkeypatch):
     def no_dns(*args, **kwargs):
         raise AssertionError("make_server asked DNS")

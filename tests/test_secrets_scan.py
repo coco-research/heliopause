@@ -12,6 +12,7 @@ def test_history_has_no_secrets():
     # The whole git history, with the repo's config (defaults + the one fake test token).
     done = subprocess.run(
         ["gitleaks", "git", "--no-banner", "--redact", "-c", str(ROOT / ".gitleaks.toml"), str(ROOT)],
-        capture_output=True, text=True, timeout=120,
+        # 300 s, not 120: three CI jobs share one self-hosted Mac, and under load the full-history scan passed 120 s (#243).
+        capture_output=True, text=True, timeout=300,
     )
     assert done.returncode == 0, done.stdout + done.stderr

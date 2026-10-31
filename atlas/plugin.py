@@ -23,7 +23,7 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
-from atlas import __version__, labfs
+from atlas import __version__, connect, labfs
 
 _CONTEXT_MAX = 10000  # SessionStart additionalContext cap
 # ponytail: one read, not a stream. A bigger hook payload is ignored.
@@ -32,6 +32,21 @@ _MARKET_NAME = "heliopause-local"
 _PLUGIN_ID = "heliopause@heliopause-local"
 _PLUGIN_NAME = "heliopause"
 _HOSTS = ("claude", "grok", "cursor")
+# Approved copy. Each string is exact.
+PLAN_ADD = "cursor: add Heliopause's hook entries to {path}. Heliopause saves the old file as {backup} first and leaves other entries alone."
+PLAN_CREATE = "cursor: create {path} with Heliopause's hook entries."
+RUNTIME = "cursor: write {runtime} so the hook knows where Python, Heliopause and your lab are."
+PROMPT = "Add these entries? [y/N] "
+NOTHING = "cursor: nothing changed."
+DONE = "cursor: connected. Start a Cursor session in {lab} to see it on Now."
+ALREADY = "cursor: already connected. Nothing to change."
+UNINSTALLED = "cursor: removed Heliopause's hook entries from {path} and deleted {runtime}. Other entries are unchanged. Your backup is still at {backup}."
+STATUS_ON = "cursor: connected ({path})"
+STATUS_OFF = "cursor: not connected. Run: atlas plugin install --host cursor"
+UPDATE = "cursor: nothing to update. The hook entries run this install's connector."
+_RUNTIME_REL = "Heliopause/connectors/runtime"
+_NO_LAB = "atlas plugin: no lab folder was found"
+_UNSUPPORTED = "atlas plugin: only ~/Heliopause is a supported Cursor install"
 _RULES = (
     "Read the board first.",
     "Never read other chats' transcripts.",
@@ -502,15 +517,6 @@ def _plugin_dir() -> Path:
     return _home_market() / _PLUGIN_NAME
 
 
-def _cursor_lines() -> list[str]:
-    # ponytail: cursor-agent plugin marketplace add takes a git URL, and there is no
-    # plugin install. Do not invent a git remote to satisfy it. A session uses --plugin-dir.
-    return [
-        "cursor: persistent install is not supported. plugin marketplace add takes a git URL, and there is no plugin install.",
-        "cursor-agent --plugin-dir ~/Heliopause/marketplace/heliopause",
-    ]
-
-
 def _print_lines(lines: list[str]) -> None:
     for line in lines:
         print(line)
@@ -527,13 +533,13 @@ def hosts_present(home: Path) -> list[str]:
     return found
 
 
-def _confirm(yes: bool, prompt: str) -> bool:
+def _confirm(yes: bool, prompt: str, unchanged: str = "Nothing changed.") -> bool:
     """One [y/N]. No terminal, n, Enter, EOF and Ctrl-C are all a refusal; nothing has been written yet."""
     if yes:
         return True
     if not sys.stdin.isatty():
         print("atlas plugin: non-interactive terminal: re-run with --yes", file=sys.stderr)
-        print("Nothing changed.")
+        print(unchanged)
         return False
     try:
         answer = input(prompt).strip().lower()
@@ -542,8 +548,26 @@ def _confirm(yes: bool, prompt: str) -> bool:
         answer = ""
     if answer in {"y", "yes"}:
         return True
-    print("Nothing changed.")
+    print(unchanged)
     return False
+
+
+def _plan_line(planned: dict) -> str | None:
+    backup = planned.get("backup")
+    if backup:
+        return PLAN_ADD.format(path=planned["path"], backup=backup)
+    if planned.get("before") is None:
+        return PLAN_CREATE.format(path=planned["path"])
+    return None
+
+
+def _removed_line(path: str, runtime: str | None, backup: str | None) -> str:
+    text = UNINSTALLED
+    if not runtime:
+        text = text.replace(" and deleted {runtime}", "")
+    if not backup:
+        text = text.replace(" Your backup is still at {backup}.", "")
+    return text.format(path=path, runtime=runtime or "", backup=backup or "")
 
 
 _built: dict[str, Path | None] = {}
@@ -611,11 +635,75 @@ def _install_grok(yes: bool) -> int:
     return _remember("grok")
 
 
+def _root() -> Path:
+    """The running install: the folder above the atlas package."""
+    import atlas
+
+    return Path(atlas.__file__).resolve().parent.parent
+
+
+def _cursor_script() -> Path:
+    return Path.home() / "Heliopause" / "connectors" / "cursor" / "report.sh"
+
+
+def _cursor_runtime_path() -> Path:
+    return Path.home() / "Heliopause" / "connectors" / "runtime"
+
+
+def _cursor_ok() -> bool:
+    """Only the documented install location is a supported target."""
+    installed = (Path.home() / "Heliopause").resolve()
+    return _root().resolve() == installed and _cursor_script().is_file()
+
+
+def _cursor_runtime_text(lab: Path) -> str:
+    # abspath, not resolve: like _write_runtime. A Homebrew python resolves into a versioned Cellar path that an upgrade removes.
+    py = os.path.abspath(sys.executable)
+    root = str(_root().resolve())
+    lab_text = str(Path(lab).resolve())
+    if "\n" in py or "\n" in root or "\n" in lab_text:
+        raise ValueError("runtime path contains a newline")
+    return py + "\n" + root + "\n" + lab_text + "\n"
+
+
+def _runtime_matches(body: str) -> bool:
+    # labfs.read refuses a symlink. Path.read_text would follow it and could look current.
+    raw = labfs.read(Path.home(), _RUNTIME_REL)
+    return raw == body.encode("utf-8")
+
+
 def _install_cursor(yes: bool) -> int:
-    _print_lines(_cursor_lines())
-    if not _confirm(yes, "Write the plugin copy to ~/Heliopause/marketplace/heliopause? [y/N] "):
+    lab = _find_lab()
+    if lab is None:
+        print(_NO_LAB, file=sys.stderr)
         return 1
-    return 0 if _build_once() is not None else 1
+    if not _cursor_ok():
+        print(_UNSUPPORTED, file=sys.stderr)
+        return 1
+    try:
+        body = _cursor_runtime_text(lab)
+        if connect.is_connected("cursor", lab) and _runtime_matches(body):
+            print(ALREADY)
+            return 0
+        planned = connect.plan("cursor", lab)
+        line = _plan_line(planned)
+        if line:
+            print(line)
+        if planned["diff"]:
+            sys.stdout.write(planned["diff"])
+        print(RUNTIME.format(runtime=str(_cursor_runtime_path())))
+        print(body, end="")
+        if not _confirm(yes, PROMPT, NOTHING):
+            return 1
+        # 0600 from the start. lab= so the runtime file cannot land inside the lab.
+        labfs.home_write(_RUNTIME_REL, body.encode("utf-8"), 0o600, lab=lab)
+        # The backup name was chosen in plan(); connect must write that same file.
+        connect.connect("cursor", lab, True, planned)
+    except (OSError, ValueError, labfs.Refused) as err:
+        print(f"atlas plugin: {err}", file=sys.stderr)
+        return 1
+    print(DONE.format(lab=lab))
+    return 0
 
 
 def _install_one(name: str, yes: bool) -> int:
@@ -661,29 +749,53 @@ def _uninstall_grok() -> int:
     return _forget("grok")
 
 
+def _uninstall_cursor() -> int:
+    lab = _find_lab()
+    if lab is None:
+        print(_NO_LAB, file=sys.stderr)
+        return 1
+    try:
+        planned = connect.disconnect("cursor", lab, True)
+        root, name = labfs.home(_RUNTIME_REL, lab=lab)
+        removed = labfs.unlink(root, name)
+    except (OSError, ValueError, labfs.Refused) as err:
+        print(f"atlas plugin: {err}", file=sys.stderr)
+        return 1
+    runtime = str(_cursor_runtime_path()) if removed else None
+    print(_removed_line(planned["path"], runtime, planned.get("kept_backup")))
+    return 0
+
+
 def _uninstall_one(name: str) -> int:
     if name == "claude":
         return _uninstall_claude()
     if name == "grok":
         return _uninstall_grok()
-    print(
-        "cursor: nothing was installed; sessions started with --plugin-dir ~/Heliopause/marketplace/heliopause stop loading Heliopause once it is removed."
-    )
-    return 0
+    return _uninstall_cursor()
 
 
 def uninstall(hosts: list[str] | None = None) -> int:
     names = list(hosts) if hosts is not None else ["claude"]
     codes = [_uninstall_one(name) for name in names]
     # A host whose uninstall failed may still load the plugin from the marketplace copy; keep it then.
-    # Cursor has no install record and loads --plugin-dir; keep the copy while ~/.cursor exists unless this run names cursor.
-    if (
-        all(code == 0 for code in codes)
-        and not _installed()
-        and ("cursor" in names or not (Path.home() / ".cursor").is_dir())
-    ):
+    if all(code == 0 for code in codes) and not _installed():
         codes.append(_drop_market())
     return 0 if all(code == 0 for code in codes) else 1
+
+
+def _status_cursor() -> int:
+    lab = _find_lab()
+    if lab is None:
+        print(STATUS_OFF)
+        return 0
+    try:
+        on = connect.is_connected("cursor", lab)
+    except (OSError, ValueError, labfs.Refused) as err:
+        print(f"atlas plugin: {err}", file=sys.stderr)
+        return 1
+    path = str(lab / ".cursor" / "hooks.json")
+    print(STATUS_ON.format(path=path) if on else STATUS_OFF)
+    return 0
 
 
 def _status_one(name: str) -> int:
@@ -691,8 +803,7 @@ def _status_one(name: str) -> int:
         return _run(["claude", "plugin", "list"])[0]
     if name == "grok":
         return _run(["grok", "plugin", "list"])[0]
-    _print_lines(_cursor_lines())
-    return 0
+    return _status_cursor()
 
 
 def status(hosts: list[str] | None = None) -> int:
@@ -703,7 +814,7 @@ def status(hosts: list[str] | None = None) -> int:
 
 def _update_one(name: str) -> int:
     if name == "cursor":
-        _print_lines(_cursor_lines())
+        print(UPDATE)
         return 0
     if name == "claude":
         argv = ["claude", "plugin", "update", _PLUGIN_ID]
@@ -720,8 +831,9 @@ def _update_one(name: str) -> int:
 def update(hosts: list[str] | None = None) -> int:
     """Refresh the local copy, then each installed host's plugin update.
 
-    ``hosts`` None means the hosts recorded by a successful install. Cursor has
-    no persistent install, so it is not in that list.
+    ``hosts`` None means the hosts recorded by a successful install. Cursor is
+    not recorded there: its hooks run this install's connector, and asking for
+    it by name only says there is nothing to update.
     """
     names = _installed() if hosts is None else list(hosts)
     if not names:

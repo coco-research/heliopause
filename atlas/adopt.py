@@ -833,6 +833,27 @@ def _cursor_text(lead: str) -> str:
     )
 
 
+def _cursor_change(lab: Path, lead: str) -> tuple | None:
+    # labfs.Refused (a linked rule file) propagates: apply stops before writing anything.
+    raw = labfs.read(lab, ".cursor/rules/atlas.mdc")
+    rule = lab / ".cursor" / "rules" / "atlas.mdc"
+    if raw is None:
+        return "created", rule, _cursor_text(lead)
+    try:
+        current = raw.decode("utf-8")
+    except UnicodeError:
+        return None
+    new = _cursor_text(lead)
+    if current == new:
+        return None
+    # Whole file is our rule for some one-line lead: escape the text around that name.
+    token = "\0"
+    before, after = _cursor_text(token).split(token, 1)
+    if re.fullmatch(re.escape(before) + r"([^\n]+)" + re.escape(after), current):
+        return "merged", rule, new
+    return None
+
+
 def _start_here() -> str:
     return (
         "# Start here\n\n"
@@ -905,9 +926,9 @@ def _plan(lab: Path, lead: str, work: bool, suggestions: list[dict]) -> list[tup
     claude = _claude_text(lab, lead)
     if claude is not None:
         actions.append((claude[0], lab / "CLAUDE.md", claude[1]))
-    rule = lab / ".cursor" / "rules" / "atlas.mdc"
-    if not rule.exists():
-        actions.append(("created", rule, _cursor_text(lead)))
+    cursor = _cursor_change(lab, lead)
+    if cursor is not None:
+        actions.append(cursor)
     ignore = lab / ".atlas" / "ignore"
     if suggestions and not ignore.exists():
         actions.append(("created", ignore, _ignore_text(suggestions)))
@@ -1253,10 +1274,21 @@ def apply(args) -> int:
         old = _read_manifest(lab) or []
         replaced = {row[1] for row in rows}
         first = {row[1]: row for row in old}
-        # A path applied twice keeps its first kind and backup, so undo returns to the original.
-        # Only a real earlier merge carries over; a file we created and the user then edited keeps the new merged row.
-        rows = [(first[r[1]][0], r[1], r[2], first[r[1]][3]) if first.get(r[1], ("",))[0] == "merged" else r for r in rows]
-        _write_manifest(lab, [row for row in old if row[1] not in replaced] + rows)
+
+        def carry(row: tuple) -> tuple:
+            earlier = first.get(row[1])
+            if earlier is not None and earlier[0] == "merged":
+                # A path applied twice keeps its first kind and backup, so undo returns to the original.
+                return (earlier[0], row[1], row[2], earlier[3])
+            if earlier is not None and earlier[0] == "created" and row[0] == "merged":
+                saved = _safe_backup(lab, row[3])
+                if saved is not None and hashlib.sha256(saved[1]).hexdigest() == earlier[2]:
+                    # Still exactly what we wrote. Uninstall removes the file instead of restoring the previous lead.
+                    return ("created", row[1], row[2], "-")
+                # The user edited it after we created it, so keep this merged row and its backup.
+            return row
+
+        _write_manifest(lab, [row for row in old if row[1] not in replaced] + [carry(row) for row in rows])
 
     rows = None
     backup = None

@@ -448,6 +448,49 @@ def test_created_then_edited_then_reapplied_keeps_the_users_edits(tmp_path, monk
     assert claude.is_file() and "my notes" in claude.read_text(encoding="utf-8")
 
 
+def test_lead_rename_updates_cursor_rule_and_uninstall_removes_created_files(tmp_path, monkeypatch):
+    home = _home(tmp_path, monkeypatch)
+    lab = tmp_path / "lab"
+    assert _apply(home, lab, "--lead-name", "Old") == 0
+    assert _apply(home, lab, "--lead-name", "New") == 0
+    rule = lab / ".cursor" / "rules" / "atlas.mdc"
+    assert rule.read_text(encoding="utf-8") == adopt._cursor_text("New")
+    assert "The Lead is New." in (lab / "CLAUDE.md").read_text(encoding="utf-8")
+    assert json.loads((lab / "atlas.json").read_text(encoding="utf-8"))["lead"] == "New"
+    assert adopt.run(["--uninstall", "--yes", "--lab", str(lab)]) == 0
+    assert not rule.exists()
+    assert not (lab / "CLAUDE.md").exists()
+    assert not (lab / "atlas.json").exists()
+
+
+def test_hand_edited_cursor_rule_is_unchanged_by_lead_rename(tmp_path, monkeypatch):
+    home = _home(tmp_path, monkeypatch)
+    lab = tmp_path / "lab"
+    assert _apply(home, lab, "--lead-name", "Old") == 0
+    rule = lab / ".cursor" / "rules" / "atlas.mdc"
+    rule.write_text(rule.read_text(encoding="utf-8") + "user added this\n", encoding="utf-8")
+    edited = rule.read_text(encoding="utf-8")
+    assert _apply(home, lab, "--lead-name", "New") == 0
+    text = rule.read_text(encoding="utf-8")
+    assert text == edited
+    assert "user added this" in text and "The Lead is Old." in text
+
+
+def test_user_text_outside_the_block_survives_a_lead_rename_uninstall(tmp_path, monkeypatch):
+    home = _home(tmp_path, monkeypatch)
+    lab = tmp_path / "lab"
+    assert _apply(home, lab, "--lead-name", "Old") == 0
+    claude = lab / "CLAUDE.md"
+    claude.write_text("my notes\n" + claude.read_text(encoding="utf-8"), encoding="utf-8")
+    edited = claude.read_text(encoding="utf-8")
+    assert edited.startswith("my notes\n") and "The Lead is Old." in edited
+    assert _apply(home, lab, "--lead-name", "New") == 0
+    assert "The Lead is New." in claude.read_text(encoding="utf-8")
+    assert adopt.run(["--uninstall", "--yes", "--lab", str(lab)]) == 0
+    # The merged row's backup is the edited file, so undo restores it, Old block included.
+    assert claude.read_text(encoding="utf-8") == edited
+
+
 def test_remember_lab_rewrites_an_undecodable_pointer(tmp_path, monkeypatch):
     monkeypatch.setenv("HOME", str(tmp_path))
     monkeypatch.setattr(Path, "home", lambda: tmp_path)

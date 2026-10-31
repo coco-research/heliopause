@@ -138,7 +138,9 @@ finally:
 """
 
 
+@pytest.mark.journey
 def test_tools_route_suggestions_and_no_binary(tmp_path):
+    """J2: one tool suggests lab and factory from that same tool, over HTTP."""
     doc = {"v": 1, "owner": "Owner", "tz": "America/New_York",
            "nodes": [{"id": "lead", "label": "Lead", "role": "lab"}], "note": "keep"}
     (tmp_path / "atlas.json").write_text(json.dumps(doc) + "\n", encoding="utf-8")

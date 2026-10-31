@@ -41,7 +41,7 @@ Ask the human which option they want. Use option 1 whenever the human says the m
 
 ### Option 1: Download the release (use this on managed or work machines)
 
-Download the release's four files from <https://github.com/coco-research/heliopause/releases/tag/v0.7.2>: `heliopause-v0.7.2.zip`, its `.sha256`, `heliopause-v0.7.2.manifest` and `heliopause-v0.7.2.manifest.sig`.
+Download the release's four files from <https://github.com/coco-research/heliopause/releases/tag/v0.7.3>: `heliopause-v0.7.3.zip`, its `.sha256`, `heliopause-v0.7.3.manifest` and `heliopause-v0.7.3.manifest.sig`.
 
 Then go to the folder the four files were downloaded to (replace `~/Downloads` with that folder):
 
@@ -52,29 +52,29 @@ cd ~/Downloads
 Before you unzip, check the download is ours. You need OpenSSH 8.1 or later. Recent macOS versions include it; check with `ssh -V`. In the folder with the four files, run:
 
 ```
-shasum -a 256 -c --status heliopause-v0.7.2.zip.sha256 &&
+shasum -a 256 -c --status heliopause-v0.7.3.zip.sha256 &&
 echo 'atlas-release namespaces="atlas-release" ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIArkj2zdOYSu0g8yfYV7Vru1PD1bUM/CKUUZ+QX2bXEV' > heliopause-allowed-signers &&
-ssh-keygen -Y verify -f heliopause-allowed-signers -I atlas-release -n atlas-release -s heliopause-v0.7.2.manifest.sig < heliopause-v0.7.2.manifest > /dev/null &&
-grep -qF "\"sha256\": \"$(shasum -a 256 heliopause-v0.7.2.zip | cut -c1-64)\"" heliopause-v0.7.2.manifest &&
-grep -qF '"filename": "heliopause-v0.7.2.zip"' heliopause-v0.7.2.manifest &&
-echo "Verified: heliopause-v0.7.2.zip is the signed v0.7.2 release." ||
+ssh-keygen -Y verify -f heliopause-allowed-signers -I atlas-release -n atlas-release -s heliopause-v0.7.3.manifest.sig < heliopause-v0.7.3.manifest > /dev/null &&
+grep -qF "\"sha256\": \"$(shasum -a 256 heliopause-v0.7.3.zip | cut -c1-64)\"" heliopause-v0.7.3.manifest &&
+grep -qF '"filename": "heliopause-v0.7.3.zip"' heliopause-v0.7.3.manifest &&
+echo "Verified: heliopause-v0.7.3.zip is the signed v0.7.3 release." ||
 { echo "NOT VERIFIED: do not unzip. See SECURITY.md." >&2; false; }
 ```
 
-It should print `Verified: heliopause-v0.7.2.zip is the signed v0.7.2 release.` If it doesn't, don't unzip, and see SECURITY.md.
+It should print `Verified: heliopause-v0.7.3.zip is the signed v0.7.3 release.` If it doesn't, don't unzip, and see SECURITY.md.
 
 Only after it prints the Verified line, unzip:
 
 ```bash
-unzip -q heliopause-v0.7.2.zip -d ~
+unzip -q heliopause-v0.7.3.zip -d ~
 ```
 
-Success: the check prints `Verified: heliopause-v0.7.2.zip is the signed v0.7.2 release.` Anything else: stop and don't unzip. `unzip` creates `~/Heliopause`. This path uses no git.
+Success: the check prints `Verified: heliopause-v0.7.3.zip is the signed v0.7.3 release.` Anything else: stop and don't unzip. `unzip` creates `~/Heliopause`. This path uses no git.
 
 ### Option 2: Clone (personal machines)
 
 ```bash
-git clone --branch v0.7.2 --depth 1 https://github.com/coco-research/heliopause ~/Heliopause
+git clone --branch v0.7.3 --depth 1 https://github.com/coco-research/heliopause ~/Heliopause
 ```
 
 The repository is public. There is no sign-in and no token.

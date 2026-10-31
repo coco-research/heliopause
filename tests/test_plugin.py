@@ -439,6 +439,22 @@ def _fake_hosts(tmp_path: Path, monkeypatch, blocked: set[str] | None = None) ->
     return log
 
 
+def _ready_cursor(home: Path, lab: Path, monkeypatch) -> None:
+    """A tmp ~/Heliopause with the connector scripts, and _root() pointed at it."""
+    monkeypatch.setenv("ATLAS_LAB", str(lab))
+    os.chmod(home, 0o700)
+    dest = home / "Heliopause"
+    dest.mkdir(mode=0o700, exist_ok=True)
+    os.chmod(dest, 0o700)
+    shutil.copytree(ROOT / "connectors", dest / "connectors")
+    for folder, _dirs, files in os.walk(dest / "connectors"):
+        os.chmod(folder, 0o700)
+        for name in files:
+            path = Path(folder) / name
+            path.chmod(0o755 if name.endswith(".sh") else 0o644)
+    monkeypatch.setattr(plugin, "_root", lambda: dest)
+
+
 def _argv_groups(log: Path) -> list[list[str]]:
     text = log.read_text(encoding="utf-8")
     assert "purge" not in text
@@ -470,6 +486,8 @@ def test_host_install_status_update_uninstall_argv(tmp_path: Path, monkeypatch, 
     home = tmp_path / "home"
     home.mkdir()
     monkeypatch.setattr(Path, "home", lambda: home)
+    monkeypatch.setenv("HOME", str(home))
+    _ready_cursor(home, _lab(tmp_path), monkeypatch)
     log = _fake_hosts(tmp_path, monkeypatch)
     market = home / "Heliopause" / "marketplace"
     plugin_dir = market / "heliopause"
@@ -495,7 +513,9 @@ def test_host_install_status_update_uninstall_argv(tmp_path: Path, monkeypatch, 
         ["grok", "plugin", "uninstall", "heliopause"],
     ]
     out = capsys.readouterr().out
-    assert "cursor-agent --plugin-dir ~/Heliopause/marketplace/heliopause" in out
+    assert "cursor-agent --plugin-dir" not in out
+    assert "persistent install is not supported" not in out
+    assert "cursor: connected" in out
     assert "no auto-update flag" in out
     assert "purge" not in out
     assert "cursor-agent" not in log.read_text(encoding="utf-8")
@@ -571,6 +591,8 @@ def test_uninstall_keeps_the_copy_while_another_host_uses_it(tmp_path: Path, mon
     home = tmp_path / "home"
     home.mkdir()
     monkeypatch.setattr(Path, "home", lambda: home)
+    monkeypatch.setenv("HOME", str(home))
+    _ready_cursor(home, _lab(tmp_path), monkeypatch)
     _fake_hosts(tmp_path, monkeypatch)
     market = home / "Heliopause" / "marketplace"
     assert plugin.run(["install", "--host", "all", "--yes"]) == 0
@@ -599,20 +621,25 @@ def _claude_only_market(tmp_path: Path, monkeypatch) -> tuple[Path, Path]:
     return home, market
 
 
-def test_uninstall_keeps_marketplace_while_cursor_home_exists(tmp_path: Path, monkeypatch) -> None:
+def test_uninstall_drops_marketplace_when_cursor_home_exists(tmp_path: Path, monkeypatch) -> None:
     home, market = _claude_only_market(tmp_path, monkeypatch)
     (home / ".cursor").mkdir()
     assert plugin.uninstall(["claude"]) == 0
-    assert market.is_dir()
+    assert not market.exists()
 
 
 def test_uninstall_drops_marketplace_when_cursor_is_named(tmp_path: Path, monkeypatch, capsys) -> None:
     home, market = _claude_only_market(tmp_path, monkeypatch)
     (home / ".cursor").mkdir()
+    monkeypatch.setenv("HOME", str(home))
+    lab = _lab(tmp_path)
+    monkeypatch.setenv("ATLAS_LAB", str(lab))
+    os.chmod(home / "Heliopause", 0o700)
     assert plugin.uninstall(["claude", "grok", "cursor"]) == 0
     assert not market.exists()
+    path = str(lab / ".cursor" / "hooks.json")
     assert capsys.readouterr().out.splitlines() == [
-        "cursor: nothing was installed; sessions started with --plugin-dir ~/Heliopause/marketplace/heliopause stop loading Heliopause once it is removed.",
+        f"cursor: removed Heliopause's hook entries from {path}. Other entries are unchanged."
     ]
 
 

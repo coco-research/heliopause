@@ -29,6 +29,14 @@ def _age(ts: str | None) -> str:
     return _ago(delta) if minutes >= 60 else ("now" if minutes < 1 else f"{minutes}m")
 
 
+def _base() -> str:
+    # WHY: urlparse("localhost:4300") reads "localhost" as the scheme, so the host is None.
+    raw = os.environ.get("ATLAS_URL", "http://127.0.0.1:4300")
+    if "://" not in raw:
+        raw = "http://" + raw
+    return raw.rstrip("/")
+
+
 def _get(base: str, path: str, **query: str) -> object:
     url = f"{base}{path}" + (f"?{urlencode(query)}" if query else "")
     with build_opener(ProxyHandler({})).open(url, timeout=10) as resp:  # loopback reads never go via a proxy
@@ -230,7 +238,7 @@ def main(argv: list[str] | None = None, prog: str = "heliopause") -> int:
     if args.verb == "brief" and not args.me:
         print("brief: pass --me or --role", file=sys.stderr)
         return 2
-    base = os.environ.get("ATLAS_URL", "http://127.0.0.1:4300").rstrip("/")
+    base = _base()
     writes = {"post", "handoff", "claim", "done"}
     if args.verb in writes and urlparse(base).hostname not in {"127.0.0.1", "localhost", "::1"}:
         print(f"atlas: {args.verb} only talks to a loopback Heliopause", file=sys.stderr)

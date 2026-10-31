@@ -1,6 +1,6 @@
 [project]
 name = "coco-atlas"
-version = "0.7.2"
+version = "0.7.3"
 description = "Local live control room for an agentic lab."
 readme = "README.md"
 requires-python = ">=3.9"
@@ -9,6 +9,11 @@ dependencies = []
 
 [project.optional-dependencies]
 dev = ["pytest"]
+
+[tool.pytest.ini_options]
+markers = [
+    "journey: Heliopause user journey. Counted by pytest -m journey.",
+]
 
 [build-system]
 requires = ["setuptools>=61"]

@@ -3,12 +3,11 @@
 from __future__ import annotations
 
 import json
-import os
 import sys
 from urllib.error import HTTPError
 from urllib.parse import urlparse
 
-from atlas.cli import _get, _mask_owner, _scrub, _send as _http_send, _token  # mcp.py has its own _send for JSON-RPC replies
+from atlas.cli import _base, _get, _mask_owner, _scrub, _send as _http_send, _token  # mcp.py has its own _send for JSON-RPC replies
 
 _PROTOCOL = "2025-06-18"
 _LOOPBACK = {"127.0.0.1", "localhost", "::1"}
@@ -30,10 +29,6 @@ _SPEC = (
         ("state", "headline", "details"),
     ),
 )
-
-
-def _base() -> str:
-    return os.environ.get("ATLAS_URL", "http://127.0.0.1:4300").rstrip("/")
 
 
 def _send(payload: dict) -> None:
@@ -125,12 +120,14 @@ def _handle(msg: object) -> None:
         return
     params = msg.get("params") or {}
     if method == "initialize":
-        version = params.get("protocolVersion")
         _result(req_id, {
-            "protocolVersion": version if isinstance(version, str) and version else _PROTOCOL,
+            "protocolVersion": _PROTOCOL,
             "capabilities": {"tools": {}},
             "serverInfo": {"name": "atlas", "version": "0.1"},
         })
+        return
+    if method == "ping":
+        _result(req_id, {})
         return
     if method == "tools/list":
         _result(req_id, {"tools": _tools()})
