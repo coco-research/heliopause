@@ -14,7 +14,7 @@
 
 <p align="center">
   <img alt="Early preview" src="https://img.shields.io/badge/status-early%20preview-5F5F58?style=flat-square">
-  <a href="LICENSE"><img alt="Licence: MIT" src="https://img.shields.io/badge/licence-MIT-5F5F58?style=flat-square"></a>
+  <a href="LICENSE"><img alt="Licence: Apache-2.0" src="https://img.shields.io/badge/licence-Apache--2.0-5F5F58?style=flat-square"></a>
   <img alt="Python 3.9 or newer" src="https://img.shields.io/badge/python-3.9%2B-5F5F58?style=flat-square">
   <img alt="Runs locally" src="https://img.shields.io/badge/runs-127.0.0.1%20only-5F5F58?style=flat-square">
 </p>
@@ -163,6 +163,8 @@ Then delete the three folders it made: `~/Heliopause`, `~/atlas-lab`, and `~/.at
 
 ## Licence
 
-MIT. Copyright Coco Research.
+Apache-2.0. Copyright 2026 Coco Research.
+
+Relicensed from MIT to Apache-2.0 from this commit. Earlier releases remain under MIT.
 
 Also from Coco Research: [Coco Super Intelligence](https://github.com/coco-research/coco)
