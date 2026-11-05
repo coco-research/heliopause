@@ -4,7 +4,7 @@ version = "0.7.3"
 description = "Local live control room for an agentic lab."
 readme = "README.md"
 requires-python = ">=3.9"
-license = {file = "LICENSE"}
+license = {text = "Apache-2.0"}
 dependencies = []
 
 [project.optional-dependencies]

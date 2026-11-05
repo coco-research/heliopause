@@ -103,7 +103,7 @@ def _fake_claude(tmp_path: Path, monkeypatch) -> Path:
 def test_plugin_version_matches_package() -> None:
     manifest = json.loads((PLUGIN / ".claude-plugin" / "plugin.json").read_text(encoding="utf-8"))
     assert manifest["name"] == "heliopause"
-    assert manifest["license"] == "MIT"
+    assert manifest["license"] == "Apache-2.0"
     assert manifest["version"] == __version__ == _pyproject_version()
     hooks = json.loads((PLUGIN / "hooks" / "hooks.json").read_text(encoding="utf-8"))
     groups = hooks["hooks"]["SessionStart"]

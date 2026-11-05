@@ -25,7 +25,7 @@ Not shipped, not needed to run the product.
 
 - SIL Open Font License 1.1: full text is stored next to each font, in the
   files named above, and is also available at https://scripts.sil.org/OFL
-- MIT License: full text is in this repository's `LICENSE`.
+- MIT License: full text is in this repository's `LICENSE-MIT-PRIOR`.
 
 Generated from sbom.cdx.json.
 
