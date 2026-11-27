@@ -471,6 +471,68 @@ def rename(root: Path, src: str | Path, dst: str | Path, *, replace: bool = Fals
         os.close(sfd)
 
 
+def rename_dir(root: Path, src: str | Path, dst: str | Path) -> None:
+    """Atomically rename a real folder root/src to root/dst below link-free folder chains. Never overwrites dst."""
+    sparts, dparts = parts_of(src), parts_of(dst)
+    base = real_root(root)
+    sshown, dshown = os.path.join(base, *sparts), os.path.join(base, *dparts)
+    sfd = _open_dirs(base, sparts[:-1], False, sshown)
+    try:
+        dfd = _open_dirs(base, dparts[:-1], False, dshown)
+        try:
+            st = _lstat(sparts[-1], sfd)
+            if st is None:
+                raise FileNotFoundError(errno.ENOENT, "not found", sshown)
+            if stat.S_ISLNK(st.st_mode) or not stat.S_ISDIR(st.st_mode):
+                raise Refused(sshown, "it is not a plain folder")
+            if _lstat(dparts[-1], dfd) is not None:
+                raise FileExistsError(errno.EEXIST, "already exists", dshown)
+            os.rename(sparts[-1], dparts[-1], src_dir_fd=sfd, dst_dir_fd=dfd)
+        finally:
+            os.close(dfd)
+    finally:
+        os.close(sfd)
+
+
+def _remove_tree_fd(dfd: int, name: str, shown: str) -> None:
+    st = _lstat(name, dfd)
+    if st is None:
+        return
+    if stat.S_ISLNK(st.st_mode) or not stat.S_ISDIR(st.st_mode):
+        raise Refused(shown, "it is not a plain folder")
+    cfd = os.open(name, _DIR, dir_fd=dfd)
+    try:
+        os.fchmod(cfd, stat.S_IMODE(st.st_mode) | 0o700)
+        for child in os.listdir(cfd):
+            cst = _lstat(child, cfd)
+            if cst is None:
+                continue
+            cshown = os.path.join(shown, child)
+            if stat.S_ISDIR(cst.st_mode):
+                _remove_tree_fd(cfd, child, cshown)
+            else:
+                _check_file(cst, cshown)
+                os.unlink(child, dir_fd=cfd)
+    finally:
+        os.close(cfd)
+    os.rmdir(name, dir_fd=dfd)
+
+
+def remove_tree(root: Path, rel: str | Path) -> None:
+    """Remove a real folder tree below root without following any symlink. Absent folder is a no-op."""
+    parts = parts_of(rel)
+    base = real_root(root)
+    shown = os.path.join(base, *parts)
+    try:
+        dfd = _open_dirs(base, parts[:-1], False, shown)
+    except FileNotFoundError:
+        return
+    try:
+        _remove_tree_fd(dfd, parts[-1], shown)
+    finally:
+        os.close(dfd)
+
+
 def chmod(root: Path, rel: str | Path, mode: int, *, folder: bool = False) -> None:
     """Set the mode of a regular, singly linked file (or a real folder) on its no-follow descriptor."""
     parts = parts_of(rel)
@@ -539,7 +601,7 @@ def _inside(path: str, root: str) -> bool:
     return path == root or path.startswith(root.rstrip(os.sep) + os.sep)
 
 
-def home(rel: str, *, lab: Path | None = None) -> tuple[Path, str]:
+def home(rel: str, *, lab: Path | None = None, base_home: Path | None = None) -> tuple[Path, str]:
     """(root, rel) to pass to write/read/unlink/append for an allowed file in the home folder. Else Refused.
 
     rel must fully match one HOME_TARGETS pattern. Each folder on the way below HOME must be a real folder you
@@ -549,7 +611,8 @@ def home(rel: str, *, lab: Path | None = None) -> tuple[Path, str]:
     """
     text = str(rel)
     parts = parts_of(text)
-    base = real_root(Path.home())
+    h = Path(base_home).expanduser() if base_home is not None else Path.home()
+    base = real_root(h)
     shown = os.path.join(base, *parts)
     if not any(re.fullmatch(pattern, text) for pattern, _who in (*HOME_TARGETS, *_ADDED_TARGETS)):
         raise Refused(shown, "not a home-folder file Heliopause may write")
@@ -573,7 +636,7 @@ def home(rel: str, *, lab: Path | None = None) -> tuple[Path, str]:
     if lab_real is not None and _inside(shown, lab_real):
         raise Refused(shown, "it is inside the lab")
     # Any lab, not only the one passed: agents write labs, so nothing that runs outside them may live in one.
-    around = lab_around(shown)
+    around = lab_around(shown, home=h)
     if around is not None:
         raise Refused(shown, f"it is inside the lab {around}")
     try:
@@ -584,7 +647,7 @@ def home(rel: str, *, lab: Path | None = None) -> tuple[Path, str]:
         if text not in HOME_FOLLOW:
             raise Refused(shown, "it is a symlink")
         real = os.path.realpath(shown)
-        if lab_real is not None and _inside(real, lab_real) or lab_around(real) is not None:
+        if lab_real is not None and _inside(real, lab_real) or lab_around(real, home=h) is not None:
             raise Refused(shown, f"it links into the lab ({real})")
         try:
             target = os.lstat(real)
@@ -615,18 +678,19 @@ def home(rel: str, *, lab: Path | None = None) -> tuple[Path, str]:
     return Path(base), text
 
 
-def known_labs() -> list[str]:
+def known_labs(home: Path | None = None) -> list[str]:
     """Real paths of the labs this user has: $ATLAS_LAB, the ~/.atlas/lab pointer, ~/atlas-lab (existing folders)."""
     found: list[str] = []
+    h = Path(home).expanduser() if home is not None else Path.home()
     candidates = [paths.lab_env()]
     for name in (paths.CONFIG, paths.LEGACY_CONFIG):  # both pointers: a lab named by either one is protected
         try:
-            pointer = read(Path.home(), f"{name}/lab", cap=4096)
+            pointer = read(h, f"{name}/lab", cap=4096)
         except OSError:
             pointer = None
         if pointer:
             candidates.append(pointer.decode("utf-8", "replace").strip().splitlines()[0].strip() if pointer.strip() else "")
-    candidates.extend(str(Path.home() / name) for name in (paths.LAB, paths.LEGACY_LAB))
+    candidates.extend(str(h / name) for name in (paths.LAB, paths.LEGACY_LAB))
     for raw in candidates:
         if not raw:
             continue
@@ -639,10 +703,10 @@ def known_labs() -> list[str]:
     return found
 
 
-def lab_around(path: Path | str) -> str | None:
+def lab_around(path: Path | str, home: Path | None = None) -> str | None:
     """The lab that path (resolved) is, or is inside: a known lab, or the nearest folder holding atlas.json."""
     real = os.path.realpath(os.path.expanduser(str(path)))
-    for lab in known_labs():
+    for lab in known_labs(home=home):
         if _inside(real, lab):
             return lab
     cur = real
@@ -659,13 +723,13 @@ def lab_around(path: Path | str) -> str | None:
         cur = parent
 
 
-def lab_near(path: Path | str) -> str | None:
+def lab_near(path: Path | str, home: Path | None = None) -> str | None:
     """A lab that path (resolved) is, is inside, or contains (known labs only for 'contains')."""
     real = os.path.realpath(os.path.expanduser(str(path)))
-    inside = lab_around(real)
+    inside = lab_around(real, home=home)
     if inside is not None:
         return inside
-    for lab in known_labs():
+    for lab in known_labs(home=home):
         if _inside(lab, real):
             return lab
     return None
@@ -675,13 +739,14 @@ def lab_near(path: Path | str) -> str | None:
 PROTECTED = (".atlas", ".heliopause", ".claude")
 
 
-def check_lab(lab: Path | str) -> str:
+def check_lab(lab: Path | str, home: Path | None = None) -> str:
     """The lab's real path, or Refused when it is, is inside, or contains ~/.atlas or ~/.claude (paths resolved).
 
     Agents can write anywhere in a lab, so a lab there could change what Claude Code or the plugin runs.
     """
     real = os.path.realpath(os.path.expanduser(str(lab)))
-    home_real = os.path.realpath(str(Path.home()))
+    h = Path(home).expanduser() if home is not None else Path.home()
+    home_real = os.path.realpath(str(h))
     for name in PROTECTED:
         guarded = os.path.realpath(os.path.join(home_real, name))
         for spot in {guarded, os.path.join(home_real, name)}:
@@ -692,10 +757,10 @@ def check_lab(lab: Path | str) -> str:
     return real
 
 
-def refuse_lab(lab: Path | str, prog: str) -> None:
+def refuse_lab(lab: Path | str, prog: str, home: Path | None = None) -> None:
     """check_lab for a command: print why and exit 2 when the lab is at, inside or around ~/.atlas or ~/.claude."""
     try:
-        check_lab(lab)
+        check_lab(lab, home=home)
     except Refused as err:
         print(f"{prog}: {err}. Pick a lab folder outside ~/.atlas and ~/.claude.", file=sys.stderr)
         raise SystemExit(2) from None

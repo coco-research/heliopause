@@ -347,3 +347,26 @@ def test_open_zip_read_scans_and_closes_the_fd(tmp_path):
             pass
     with pytest.raises(OSError):
         os.lseek(bad, 0, os.SEEK_SET)
+
+
+def test_rename_dir_and_remove_tree_never_follow_symlinks(root, tmp_path):
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    (outside / "keep.txt").write_bytes(b"keep")
+    (root / "stage").mkdir()
+    (root / "stage" / "sub").mkdir()
+    (root / "stage" / "sub" / "a.txt").write_bytes(b"ok")
+    (root / "existing").mkdir()
+    with pytest.raises(FileExistsError):
+        labfs.rename_dir(root, "stage", "existing")
+    labfs.rename_dir(root, "stage", "final")
+    assert not (root / "stage").exists() and (root / "final" / "sub" / "a.txt").read_bytes() == b"ok"
+    labfs.remove_tree(root, "final")
+    assert not (root / "final").exists()
+    labfs.remove_tree(root, "absent")
+    (root / "link").symlink_to(outside, target_is_directory=True)
+    with pytest.raises(labfs.Refused):
+        labfs.rename_dir(root, "link", "moved")
+    with pytest.raises(labfs.Refused):
+        labfs.remove_tree(root, "link")
+    assert (outside / "keep.txt").read_bytes() == b"keep"

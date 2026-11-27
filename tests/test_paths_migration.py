@@ -6,6 +6,7 @@ Every test runs on a fixture home under tmp_path (HOME is set for the child proc
 
 import json
 import os
+import shlex
 import socket
 import stat
 import subprocess
@@ -16,7 +17,7 @@ from pathlib import Path
 
 import pytest
 
-from atlas import paths
+from atlas import hooks, labfs, paths
 
 REPO = Path(__file__).resolve().parent.parent
 
@@ -290,3 +291,176 @@ def test_a_symlink_at_the_new_name_is_not_followed(legacy, tmp_path):
     got = _run(legacy, "migrate", "--apply", "--yes")
     assert got.returncode == 1
     assert list(elsewhere.iterdir()) == []
+
+
+# ---- hooks re-pointing, console scripts, stop notice, atomic staging -------------------------------------------------
+
+
+def _hook_commands_by_event(settings_path: Path) -> dict[str, list[str]]:
+    data = json.loads(settings_path.read_text(encoding="utf-8"))
+    out: dict[str, list[str]] = {}
+    for event, groups in data.get("hooks", {}).items():
+        out[event] = [h["command"] for g in groups for h in g.get("hooks", []) if isinstance(h, dict) and "command" in h]
+    return out
+
+
+def test_migrate_repoints_hooks_and_start_hook_writes_to_new_lab(tmp_path):
+    """End-to-end: legacy install -> migrate -> exact 1 entry per hook -> fire start hook -> lands in heliopause-lab."""
+    home = tmp_path / "home"
+    home.mkdir()
+    old_lab = home / "atlas-lab"
+    new_lab = home / "heliopause-lab"
+    assert _run(home, "init", "--dir", str(old_lab), "--yes", module="atlas").returncode == 0
+    (home / ".atlas").mkdir(mode=0o700)
+    (home / ".atlas").chmod(0o700)
+    (home / ".atlas" / "lab").write_text(f"{old_lab}\n", encoding="utf-8")
+    assert _run(home, "hooks", "--lab", str(old_lab), "--yes", module="atlas").returncode == 0
+
+    settings_path = home / ".claude" / "settings.json"
+    before_cmds = _hook_commands_by_event(settings_path)
+    assert len(before_cmds["SessionStart"]) == 1 and "/.atlas/hooks/atlas-hook-start-" in before_cmds["SessionStart"][0]
+    assert len(before_cmds["UserPromptSubmit"]) == 1 and "/.atlas/hooks/atlas-recall-hook-" in before_cmds["UserPromptSubmit"][0]
+
+    # Dry-run announces hook re-pointing and stop notice without changing anything.
+    before_all = _snap(home)
+    dry = _run(home, "migrate", "--dry-run")
+    assert dry.returncode == 0, dry.stderr
+    assert "Stop Heliopause before migrating" in dry.stdout
+    assert "re-point ~/.claude/settings.json hooks" in dry.stdout
+    assert _snap(home) == before_all
+
+    old_cfg_snap = _snap(home / ".atlas")
+    old_lab_snap = _snap(old_lab)
+    old_board_before = (old_lab / "board.md").read_text(encoding="utf-8")
+
+    # Apply migration: copies folders, updates settings.json with backup, removes stale copied old-id hooks.
+    applied = _run(home, "migrate", "--apply", "--yes")
+    assert applied.returncode == 0, applied.stderr
+    assert "Stop Heliopause before migrating" in applied.stdout
+    assert _snap(home / ".atlas") == old_cfg_snap
+    assert _snap(old_lab) == old_lab_snap
+
+    after_cmds = _hook_commands_by_event(settings_path)
+    expected_start, expected_recall = hooks.hook_commands(new_lab, cfg=".heliopause", home=home)
+    assert after_cmds["SessionStart"] == [expected_start]
+    assert after_cmds["UserPromptSubmit"] == [expected_recall]
+    assert "/.atlas/hooks/" not in settings_path.read_text(encoding="utf-8")
+    assert list((new_lab / "backups").glob("settings.json.*"))
+    # Only the new-lab hook scripts live in ~/.heliopause/hooks/ (no stale old-lab copies left behind).
+    new_hook_names = sorted(p.name for p in (home / ".heliopause" / "hooks").iterdir())
+    assert new_hook_names == sorted(Path(rel).name for rel in hooks.hook_rels(new_lab, cfg=".heliopause", home=home))
+
+    # Fire the Start hook command directly from settings.json in a fenced HOME (never touching live :4300).
+    workdir = tmp_path / "e2e-check"
+    workdir.mkdir()
+    start_argv = shlex.split(after_cmds["SessionStart"][0])
+    fired = subprocess.run(
+        start_argv,
+        cwd=str(workdir),
+        env=_env(home, ATLAS_URL="http://127.0.0.1:1"),
+        stdin=subprocess.DEVNULL,
+        capture_output=True,
+        text=True,
+        timeout=30,
+    )
+    assert fired.returncode == 0, fired.stderr
+    assert "Session started · e2e-check" in (new_lab / "board.md").read_text(encoding="utf-8")
+    assert (old_lab / "board.md").read_text(encoding="utf-8") == old_board_before
+
+    # Running `heliopause hooks --yes` again is idempotent: still exact 1 entry per hook, zero duplicates.
+    settings_after_migrate = settings_path.read_text(encoding="utf-8")
+    backups_before = sorted(p.name for p in (new_lab / "backups").glob("settings.json.*"))
+    again = _run(home, "hooks", "--yes")
+    assert again.returncode == 0, again.stderr
+    assert settings_path.read_text(encoding="utf-8") == settings_after_migrate
+    assert _hook_commands_by_event(settings_path) == after_cmds
+    assert sorted(p.name for p in (new_lab / "backups").glob("settings.json.*")) == backups_before
+
+
+def test_migrate_does_not_touch_settings_when_hooks_never_installed(legacy):
+    settings_path = legacy / ".claude" / "settings.json"
+    settings_path.parent.mkdir(parents=True)
+    unrelated = json.dumps({"hooks": {"PreToolUse": [{"hooks": [{"type": "command", "command": "/bin/true"}]}]}}, indent=2) + "\n"
+    settings_path.write_text(unrelated, encoding="utf-8")
+    got = _run(legacy, "migrate", "--apply", "--yes")
+    assert got.returncode == 0, got.stderr
+    assert settings_path.read_text(encoding="utf-8") == unrelated
+
+
+def test_hooks_replaces_legacy_atlas_entries_and_preserves_user_hooks(tmp_path):
+    """Running `heliopause hooks --yes` on ~/heliopause-lab replaces old ~/.atlas/hooks entries without duplicates."""
+    home = tmp_path / "home"
+    home.mkdir()
+    old_lab = home / "atlas-lab"
+    new_lab = home / "heliopause-lab"
+    assert _run(home, "init", "--dir", str(old_lab), "--yes", module="atlas").returncode == 0
+    (home / ".atlas").mkdir(mode=0o700)
+    (home / ".atlas").chmod(0o700)
+    settings_path = home / ".claude" / "settings.json"
+    settings_path.parent.mkdir(parents=True)
+    base_settings = {
+        "theme": "dark",
+        "hooks": {
+            "SessionStart": [{"hooks": [{"type": "command", "command": "/bin/existing-start"}]}],
+            "PreToolUse": [{"hooks": [{"type": "command", "command": "/bin/true"}]}],
+        },
+    }
+    settings_path.write_text(json.dumps(base_settings, indent=2) + "\n", encoding="utf-8")
+    assert _run(home, "hooks", "--lab", str(old_lab), "--yes", module="atlas").returncode == 0
+
+    # Now switch to the new folders without touching settings.json yet, then run `heliopause hooks --yes`.
+    assert _run(home, "init", "--dir", str(new_lab), "--yes", module="heliopause").returncode == 0
+    (home / ".heliopause").mkdir(mode=0o700)
+    (home / ".heliopause").chmod(0o700)
+    got = _run(home, "hooks", "--yes")
+    assert got.returncode == 0, got.stderr
+    cmds = _hook_commands_by_event(settings_path)
+    expected_start, expected_recall = hooks.hook_commands(new_lab, cfg=".heliopause", home=home)
+    assert cmds["SessionStart"] == ["/bin/existing-start", expected_start]
+    assert cmds["UserPromptSubmit"] == [expected_recall]
+    assert cmds["PreToolUse"] == ["/bin/true"]
+    assert "/.atlas/hooks/" not in settings_path.read_text(encoding="utf-8")
+
+
+def test_pyproject_exposes_only_heliopause_script():
+    """pyproject.toml exposes only the `heliopause` console script (never global `atlas`)."""
+    text = (REPO / "pyproject.toml").read_text(encoding="utf-8")
+    in_scripts = False
+    scripts: list[str] = []
+    for raw in text.splitlines():
+        line = raw.strip()
+        if line.startswith("["):
+            in_scripts = line == "[project.scripts]"
+            continue
+        if in_scripts and "=" in line and not line.startswith("#"):
+            scripts.append(line.split("=", 1)[0].strip())
+    assert scripts == ["heliopause"]
+
+
+def test_mid_copy_failure_leaves_no_partial_new_lab_and_keeps_default_lab(legacy, monkeypatch, capsys):
+    """A mid-copy failure cleans up staging dirs so ~/heliopause-lab does not exist and default_lab stays ~/atlas-lab."""
+    monkeypatch.setenv("HOME", str(legacy))
+    old_cfg_snap = _snap(legacy / ".atlas")
+    old_lab_snap = _snap(legacy / "atlas-lab")
+    real_write = labfs.write
+    lab_writes = 0
+
+    def fail_mid_lab(root, rel, data, mode=None, *, new_only=False):
+        nonlocal lab_writes
+        if str(rel).startswith(".heliopause-lab.migrating-"):
+            lab_writes += 1
+            if lab_writes == 3:
+                raise OSError(28, "No space left on device", str(Path(root) / rel))
+        return real_write(root, rel, data, mode, new_only=new_only)
+
+    monkeypatch.setattr(labfs, "write", fail_mid_lab)
+    rc = paths.migrate_legacy_layout(home=legacy, apply=True, yes=True)
+    assert rc == 1
+    assert "No space left on device" in capsys.readouterr().err
+    assert not (legacy / "heliopause-lab").exists()
+    assert not (legacy / ".heliopause").exists()
+    assert not [p for p in legacy.iterdir() if ".migrating-" in p.name]
+    assert paths.default_lab(legacy) == legacy / "atlas-lab"
+    assert paths.config_dir(legacy) == legacy / ".atlas"
+    assert _snap(legacy / ".atlas") == old_cfg_snap
+    assert _snap(legacy / "atlas-lab") == old_lab_snap

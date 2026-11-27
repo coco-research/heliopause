@@ -9,7 +9,6 @@ dependencies = []
 
 [project.scripts]
 heliopause = "heliopause:main"
-atlas = "heliopause:main"
 
 [project.optional-dependencies]
 dev = ["pytest"]
