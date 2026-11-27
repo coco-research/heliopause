@@ -11,14 +11,13 @@ import sys
 import time
 from pathlib import Path
 
-from atlas import labfs
+from atlas import labfs, paths
 
 _BIN = Path(__file__).resolve().parent / "templates" / "solo" / "bin"
 
 
 def _lab(raw: str | None) -> Path:
-    chosen = raw or os.environ.get("ATLAS_LAB") or "~/atlas-lab"
-    path = Path(chosen).expanduser()
+    path = paths.lab_dir(raw)
     return path if path.is_absolute() else path.resolve()
 
 
@@ -352,7 +351,7 @@ def _install(lab: Path) -> int:
 
 def run(argv: list[str] | None = None) -> int:
     common = argparse.ArgumentParser(add_help=False)
-    common.add_argument("--lab", help="lab folder (default: $ATLAS_LAB or ~/atlas-lab)")
+    common.add_argument("--lab", help="lab folder (default: $HELIOPAUSE_LAB or $ATLAS_LAB, then ~/heliopause-lab or an existing ~/atlas-lab)")
     parser = argparse.ArgumentParser(prog="atlas bus", description="Use the lab bus for this lab.")
     verbs = parser.add_subparsers(dest="verb", required=True)
     ask = verbs.add_parser("ask", parents=[common], help="write an ask into inbox/")

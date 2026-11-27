@@ -49,7 +49,7 @@ def test_roundtrip(tmp_path, monkeypatch, settings, decision):
     hooks.run(["--lab", str(lab), "--yes"])
     hooked = home / ".claude" / "settings.json"
     start = hooks.hook_commands(lab)[0]
-    assert start.startswith(str(home / ".atlas" / "hooks" / "atlas-hook-start-"))
+    assert start.startswith(str(home / ".heliopause" / "hooks" / "atlas-hook-start-"))
     assert hooked.is_file() and start in hooked.read_text(encoding="utf-8")
     assert str(lab / "bin" / "atlas-hook-start") not in hooked.read_text(encoding="utf-8")
     if settings:

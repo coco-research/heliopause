@@ -43,7 +43,7 @@ import subprocess
 import sys
 import time
 
-from atlas import labfs
+from atlas import labfs, paths
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -897,15 +897,19 @@ def _template_targets(lab: Path) -> list[Path]:
     return targets
 
 
+def _pointer_rel() -> str:
+    return f"{paths.config_rel()}/lab"
+
+
 def _lab_pointer() -> Path:
-    return Path.home() / ".atlas" / "lab"
+    return Path.home() / _pointer_rel()
 
 
 def _pointer_action(lab: Path) -> tuple | None:
     # An existing pointer may name another lab. Create one only when the path is absent.
     path = _lab_pointer()
     try:
-        if labfs.check(*labfs.home(HOME_FILES[0], lab=lab)):
+        if labfs.check(*labfs.home(_pointer_rel(), lab=lab)):
             return None
     except labfs.Refused as err:
         print(f"atlas adopt: not writing the lab pointer: {err}", file=sys.stderr)
@@ -953,7 +957,7 @@ def _home_rel(path: Path) -> str | None:
         rel = labfs.rel_to(Path.home(), path)
     except labfs.Refused:
         return None
-    return rel if rel in HOME_FILES else None
+    return rel if rel in HOME_FILES or rel == _pointer_rel() else None
 
 
 def _target(lab: Path, path: Path) -> tuple[Path, str]:
@@ -1162,7 +1166,7 @@ def _remember_lab(lab: Path) -> None:
     text = str(lab if lab.is_absolute() else lab.resolve()) + "\n"
     try:
         # Bytes, not text: an undecodable pointer just counts as different and is rewritten.
-        root, rel = labfs.home(HOME_FILES[0], lab=lab)
+        root, rel = labfs.home(_pointer_rel(), lab=lab)
         if labfs.read(root, rel) == text.encode("utf-8"):
             return
         labfs.write(root, rel, text.encode("utf-8"))
@@ -1357,7 +1361,7 @@ def _is_pointer_row(stored_path: Path) -> bool:
 def _remove_pointer(lab: Path) -> None:
     path = _lab_pointer()
     try:
-        root, rel = labfs.home(HOME_FILES[0], lab=lab)
+        root, rel = labfs.home(_pointer_rel(), lab=lab)
         raw = labfs.read(root, rel)
     except OSError:
         return
@@ -1493,13 +1497,13 @@ def _within(child: Path, parent: Path) -> bool:
 
 
 def _lab_for(root: Path) -> Path:
-    raw = os.environ.get("ATLAS_LAB", "").strip()
+    raw = paths.lab_env()
     if raw:
         path = Path(raw)
         if path.is_absolute() and ((path / "atlas.json").is_file() or (path / ".atlas" / "adopt-scan.json").is_file()):
             return path
     try:
-        text = (Path.home() / ".atlas" / "lab").read_text(encoding="utf-8")
+        text = _lab_pointer().read_text(encoding="utf-8")
     except (OSError, UnicodeError):
         text = ""
     lines = text.strip().splitlines()
@@ -1908,8 +1912,9 @@ def run(argv: list[str] | None = None) -> int:
     parser.add_argument("--yes", action="store_true", help="apply without the confirmation prompt")
     parser.add_argument("--lead-name", help="name to store in atlas.json (default: Lead)")
     parser.add_argument("--home", type=Path, help="home directory to read (default: your home)")
-    parser.add_argument("--lab", type=Path, default=Path("~/atlas-lab"), help="lab folder")
+    parser.add_argument("--lab", type=Path, default=None, help="lab folder (default: ~/heliopause-lab, or an existing ~/atlas-lab)")
     args = parser.parse_args(argv)
+    args.lab = paths.lab_dir(args.lab)
     chosen = sum(bool(flag) for flag in (args.scan, args.apply, args.uninstall, args.mark, args.unmark))
     if chosen != 1:
         parser.error("pass one of --scan, --apply, --uninstall, --mark, or --unmark")

@@ -327,7 +327,7 @@ def test_uninstall_restores_merged_atlas_json_and_removes_the_pointer(tmp_path, 
     raw = b'{ "profile": "work", "update": "off" }\n'
     (lab / "atlas.json").write_bytes(raw)
     assert _apply(home, lab, "--lead-name", "Lead A") == 0
-    pointer = home / ".atlas" / "lab"
+    pointer = home / ".heliopause" / "lab"  # a fresh home has no ~/.atlas, so the new name is used
     assert pointer.is_file()
     assert pointer.read_text(encoding="utf-8").strip() == str(lab.resolve())
     assert (lab / "atlas.json").read_bytes() != raw
@@ -402,14 +402,14 @@ def test_apply_plan_lists_manifest_folders_and_lab_pointer(tmp_path, monkeypatch
     assert out.splitlines()[-1] == "Nothing changed yet."
     assert "created .atlas/adopt-manifest.tsv" in out
     assert "created folders: " + ", ".join(_DIRS) in out
-    assert ".atlas/lab" in out
+    assert ".heliopause/lab" in out
     assert "first board line on board.md" in out
     assert (
         f"Backup: a new folder under {lab}/.atlas/backup/ (the exact path is printed when applied)"
         in out
     )
     assert not (lab / "board.md").exists()
-    assert not (home / ".atlas" / "lab").exists()
+    assert not (home / ".heliopause" / "lab").exists()
 
 
 def test_reapply_then_uninstall_returns_to_the_original(tmp_path, monkeypatch, capsys):

@@ -11,7 +11,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
-from atlas import labfs
+from atlas import labfs, paths
 
 def map_path(name: str) -> Path:
     """Package map file, or ATLAS_MAPS_DIR/name when that variable is set and non-empty."""
@@ -251,7 +251,7 @@ LAB_LEAD = "vp"
 def _activate_lab() -> None:
     global LAB, LAB_DIR, LAB_OWNER, LAB_LABELS, LAB_LANES, LAB_LEAD, _NY, _ALIASES
     global NODE_IDS, HQ_ROLES, ROLE_LABELS, ROLE_IDS, ROLE_KEYS, _ROLE_KEY, _NOT_LAB
-    raw = os.environ.get("ATLAS_LAB")
+    raw = paths.lab_env()
     if not raw:
         return
     cfg = load_lab(Path(raw))

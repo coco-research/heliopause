@@ -26,6 +26,8 @@ import tempfile
 import zipfile
 from pathlib import Path
 
+from atlas import paths
+
 _NOFOLLOW = getattr(os, "O_NOFOLLOW", 0)
 _CLOEXEC = getattr(os, "O_CLOEXEC", 0)
 _DIR = os.O_RDONLY | getattr(os, "O_DIRECTORY", 0) | _NOFOLLOW | _CLOEXEC
@@ -509,12 +511,12 @@ def lab_target(rel: str) -> str:
 # The only files in the home folder that Heliopause writes or removes (relative to HOME, full match).
 # Everything else under HOME is refused by home(). Keep this list short and say who writes each one.
 HOME_TARGETS = (
-    (r"\.atlas/lab", "adopt: the pointer to the last applied lab (plugin reads it)"),
-    (r"\.atlas/plugin-hosts", "plugin: which hosts the plugin was installed for"),
+    (r"\.(?:atlas|heliopause)/lab", "adopt: the pointer to the last applied lab (plugin reads it)"),
+    (r"\.(?:atlas|heliopause)/plugin-hosts", "plugin: which hosts the plugin was installed for"),
     (r"Heliopause/marketplace/[^/].*", "plugin: the local marketplace copy, rebuilt from this package"),
     (r"Heliopause/connectors/runtime", "plugin: where Python, Heliopause and the lab are, read by the Cursor hook script"),
-    (r"\.atlas/marketplace/[^/].*", "plugin: where 0.6 kept the marketplace copy; only removed now"),
-    (r"\.atlas/hooks/atlas-(?:hook-start|recall-hook)-[0-9a-f]{12}", "hooks: owner-only hook scripts that settings.json runs"),
+    (r"\.(?:atlas|heliopause)/marketplace/[^/].*", "plugin: where 0.6 kept the marketplace copy; only removed now"),
+    (r"\.(?:atlas|heliopause)/hooks/atlas-(?:hook-start|recall-hook)-[0-9a-f]{12}", "hooks: owner-only hook scripts that settings.json runs"),
     (r"\.claude/settings\.json", "hooks and uninstall: the Claude Code hooks registration"),
 )
 # Optional add-ons that are not in every build add their exact files here (allow_home), at import.
@@ -523,8 +525,8 @@ _ADDED_TARGETS: list = []
 
 def allow_home(pattern: str, who: str) -> None:
     """Add one HOME_TARGETS-style entry (a full-match pattern below ~/.atlas/hooks/) for an optional add-on."""
-    if not pattern.startswith(r"\.atlas/hooks/"):
-        raise ValueError("add-ons may only add files below ~/.atlas/hooks/")
+    if not pattern.startswith((r"\.atlas/hooks/", r"\.(?:atlas|heliopause)/hooks/")):
+        raise ValueError("add-ons may only add files below ~/.atlas/hooks/ or ~/.heliopause/hooks/")
     if (pattern, who) not in _ADDED_TARGETS:
         _ADDED_TARGETS.append((pattern, who))
 
@@ -537,7 +539,7 @@ def _inside(path: str, root: str) -> bool:
     return path == root or path.startswith(root.rstrip(os.sep) + os.sep)
 
 
-def home(rel: str, *, lab: Path | None = None) -> tuple[Path, str]:
+def home(rel: str, *, lab: Path | None = None, base_home: Path | None = None) -> tuple[Path, str]:
     """(root, rel) to pass to write/read/unlink/append for an allowed file in the home folder. Else Refused.
 
     rel must fully match one HOME_TARGETS pattern. Each folder on the way below HOME must be a real folder you
@@ -547,7 +549,8 @@ def home(rel: str, *, lab: Path | None = None) -> tuple[Path, str]:
     """
     text = str(rel)
     parts = parts_of(text)
-    base = real_root(Path.home())
+    h = Path(base_home).expanduser() if base_home is not None else Path.home()
+    base = real_root(h)
     shown = os.path.join(base, *parts)
     if not any(re.fullmatch(pattern, text) for pattern, _who in (*HOME_TARGETS, *_ADDED_TARGETS)):
         raise Refused(shown, "not a home-folder file Heliopause may write")
@@ -571,7 +574,7 @@ def home(rel: str, *, lab: Path | None = None) -> tuple[Path, str]:
     if lab_real is not None and _inside(shown, lab_real):
         raise Refused(shown, "it is inside the lab")
     # Any lab, not only the one passed: agents write labs, so nothing that runs outside them may live in one.
-    around = lab_around(shown)
+    around = lab_around(shown, home=h)
     if around is not None:
         raise Refused(shown, f"it is inside the lab {around}")
     try:
@@ -582,7 +585,7 @@ def home(rel: str, *, lab: Path | None = None) -> tuple[Path, str]:
         if text not in HOME_FOLLOW:
             raise Refused(shown, "it is a symlink")
         real = os.path.realpath(shown)
-        if lab_real is not None and _inside(real, lab_real) or lab_around(real) is not None:
+        if lab_real is not None and _inside(real, lab_real) or lab_around(real, home=h) is not None:
             raise Refused(shown, f"it links into the lab ({real})")
         try:
             target = os.lstat(real)
@@ -613,17 +616,19 @@ def home(rel: str, *, lab: Path | None = None) -> tuple[Path, str]:
     return Path(base), text
 
 
-def known_labs() -> list[str]:
+def known_labs(home: Path | None = None) -> list[str]:
     """Real paths of the labs this user has: $ATLAS_LAB, the ~/.atlas/lab pointer, ~/atlas-lab (existing folders)."""
     found: list[str] = []
-    candidates = [os.environ.get("ATLAS_LAB", "").strip()]
-    try:
-        pointer = read(Path.home(), ".atlas/lab", cap=4096)
-    except OSError:
-        pointer = None
-    if pointer:
-        candidates.append(pointer.decode("utf-8", "replace").strip().splitlines()[0].strip() if pointer.strip() else "")
-    candidates.append(str(Path.home() / "atlas-lab"))
+    h = Path(home).expanduser() if home is not None else Path.home()
+    candidates = [paths.lab_env()]
+    for name in (paths.CONFIG, paths.LEGACY_CONFIG):  # both pointers: a lab named by either one is protected
+        try:
+            pointer = read(h, f"{name}/lab", cap=4096)
+        except OSError:
+            pointer = None
+        if pointer:
+            candidates.append(pointer.decode("utf-8", "replace").strip().splitlines()[0].strip() if pointer.strip() else "")
+    candidates.extend(str(h / name) for name in (paths.LAB, paths.LEGACY_LAB))
     for raw in candidates:
         if not raw:
             continue
@@ -636,10 +641,10 @@ def known_labs() -> list[str]:
     return found
 
 
-def lab_around(path: Path | str) -> str | None:
+def lab_around(path: Path | str, home: Path | None = None) -> str | None:
     """The lab that path (resolved) is, or is inside: a known lab, or the nearest folder holding atlas.json."""
     real = os.path.realpath(os.path.expanduser(str(path)))
-    for lab in known_labs():
+    for lab in known_labs(home=home):
         if _inside(real, lab):
             return lab
     cur = real
@@ -656,29 +661,30 @@ def lab_around(path: Path | str) -> str | None:
         cur = parent
 
 
-def lab_near(path: Path | str) -> str | None:
+def lab_near(path: Path | str, home: Path | None = None) -> str | None:
     """A lab that path (resolved) is, is inside, or contains (known labs only for 'contains')."""
     real = os.path.realpath(os.path.expanduser(str(path)))
-    inside = lab_around(real)
+    inside = lab_around(real, home=home)
     if inside is not None:
         return inside
-    for lab in known_labs():
+    for lab in known_labs(home=home):
         if _inside(lab, real):
             return lab
     return None
 
 
 # Folders a lab must stay clear of: what runs outside the agents' sandbox lives here (hooks, plugin, settings).
-PROTECTED = (".atlas", ".claude")
+PROTECTED = (".atlas", ".heliopause", ".claude")
 
 
-def check_lab(lab: Path | str) -> str:
+def check_lab(lab: Path | str, home: Path | None = None) -> str:
     """The lab's real path, or Refused when it is, is inside, or contains ~/.atlas or ~/.claude (paths resolved).
 
     Agents can write anywhere in a lab, so a lab there could change what Claude Code or the plugin runs.
     """
     real = os.path.realpath(os.path.expanduser(str(lab)))
-    home_real = os.path.realpath(str(Path.home()))
+    h = Path(home).expanduser() if home is not None else Path.home()
+    home_real = os.path.realpath(str(h))
     for name in PROTECTED:
         guarded = os.path.realpath(os.path.join(home_real, name))
         for spot in {guarded, os.path.join(home_real, name)}:
@@ -689,10 +695,10 @@ def check_lab(lab: Path | str) -> str:
     return real
 
 
-def refuse_lab(lab: Path | str, prog: str) -> None:
+def refuse_lab(lab: Path | str, prog: str, home: Path | None = None) -> None:
     """check_lab for a command: print why and exit 2 when the lab is at, inside or around ~/.atlas or ~/.claude."""
     try:
-        check_lab(lab)
+        check_lab(lab, home=home)
     except Refused as err:
         print(f"{prog}: {err}. Pick a lab folder outside ~/.atlas and ~/.claude.", file=sys.stderr)
         raise SystemExit(2) from None

@@ -13,7 +13,7 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
-from atlas import labfs
+from atlas import labfs, paths
 
 # After the Grok check, each hook script checks that it and its folder are yours and owner-only (no group or other bits).
 # WHY: settings.json runs these outside any agent sandbox, so they live in ~/.atlas/hooks, never in the lab.
@@ -50,12 +50,12 @@ if [ -n "${GROK_HOOK_EVENT:-}" ]; then
   }
   _gg_event=$(printf '%s' "$GROK_HOOK_EVENT" | LC_ALL=C tr -cd 'A-Za-z0-9_' | LC_ALL=C cut -c1-40) 2>/dev/null || true
   _gg_lab=
-  _gg_raw=$(_gg_trim "${ATLAS_LAB-}") 2>/dev/null || true
+  _gg_raw=$(_gg_trim "${HELIOPAUSE_LAB:-${ATLAS_LAB-}}") 2>/dev/null || true
   if [ -n "$_gg_raw" ]; then
     case "$_gg_raw" in
       /*) [ -f "$_gg_raw/atlas.json" ] && _gg_lab="$_gg_raw" ;;
     esac
-  elif [ -n "${HOME-}" ] && [ -r "${HOME}/.atlas/lab" ]; then
+  elif [ -n "${HOME-}" ] && { [ -r "${HOME}/.heliopause/lab" ] && _gg_ptr="${HOME}/.heliopause/lab" || { [ -r "${HOME}/.atlas/lab" ] && _gg_ptr="${HOME}/.atlas/lab"; }; }; then
     _gg_line=
     _gg_saw=
     while IFS= read -r _gg_line || [ -n "$_gg_line" ]; do
@@ -64,14 +64,18 @@ if [ -n "${GROK_HOOK_EVENT:-}" ]; then
         _gg_saw=1
         break
       fi
-    done < "${HOME}/.atlas/lab"
+    done < "$_gg_ptr"
     if [ -n "$_gg_saw" ]; then
       case "$_gg_line" in
         /*) [ -f "$_gg_line/atlas.json" ] && _gg_lab="$_gg_line" ;;
       esac
+    elif [ -f "${HOME}/heliopause-lab/atlas.json" ]; then
+      _gg_lab="${HOME}/heliopause-lab"
     elif [ -f "${HOME}/atlas-lab/atlas.json" ]; then
       _gg_lab="${HOME}/atlas-lab"
     fi
+  elif [ -n "${HOME-}" ] && [ -f "${HOME}/heliopause-lab/atlas.json" ]; then
+    _gg_lab="${HOME}/heliopause-lab"
   elif [ -n "${HOME-}" ] && [ -f "${HOME}/atlas-lab/atlas.json" ]; then
     _gg_lab="${HOME}/atlas-lab"
   fi
@@ -105,7 +109,7 @@ exit 0
 )
 
 # Relative to HOME. The folder and the scripts are 0700 and yours; labfs.HOME_TARGETS allows exactly these names.
-HOOKS_DIR = ".atlas/hooks"
+HOOKS_DIR = ".atlas/hooks"  # the legacy name; hooks_dir() is the one in use
 _NAMES = ("atlas-hook-start", "atlas-recall-hook")
 
 
@@ -114,15 +118,21 @@ def _lab_id(lab: Path) -> str:
     return hashlib.sha256(real.encode("utf-8", "surrogateescape")).hexdigest()[:12]
 
 
-def hook_rels(lab: Path) -> tuple[str, str]:
+def hooks_dir(cfg: str | None = None, home: Path | None = None) -> str:
+    """The hooks folder relative to HOME: <config>/hooks ('.heliopause' for new installs, '.atlas' while that exists)."""
+    return f"{cfg or paths.config_rel(home)}/hooks"
+
+
+def hook_rels(lab: Path, cfg: str | None = None, home: Path | None = None) -> tuple[str, str]:
     """(start, recall) hook script paths relative to HOME for this lab: one pair per lab."""
     ident = _lab_id(lab)
-    return tuple(f"{HOOKS_DIR}/{name}-{ident}" for name in _NAMES)  # type: ignore[return-value]
+    return tuple(f"{hooks_dir(cfg, home=home)}/{name}-{ident}" for name in _NAMES)  # type: ignore[return-value]
 
 
-def hook_commands(lab: Path) -> tuple[str, str]:
+def hook_commands(lab: Path, cfg: str | None = None, home: Path | None = None) -> tuple[str, str]:
     """The settings.json commands for this lab's hooks."""
-    return tuple(shlex.quote(str(Path.home() / rel)) for rel in hook_rels(lab))  # type: ignore[return-value]
+    h = Path(home).expanduser() if home is not None else Path.home()
+    return tuple(shlex.quote(str(h / rel)) for rel in hook_rels(lab, cfg=cfg, home=h))  # type: ignore[return-value]
 
 
 def old_commands(lab: Path) -> set:
@@ -130,6 +140,71 @@ def old_commands(lab: Path) -> set:
     lab = Path(lab).expanduser()
     spellings = {str(lab), os.path.realpath(os.fspath(lab))}
     return {str(Path(folder) / "bin" / name) for folder in spellings for name in _NAMES}
+
+
+def _home_hook_commands(lab: Path, cfg: str, home: Path) -> set[str]:
+    """All command spellings (raw and shlex-quoted, given and realpath home) for lab's hooks under cfg."""
+    rels = hook_rels(lab, cfg=cfg, home=home)
+    homes = {home, Path(os.path.realpath(os.fspath(home)))}
+    cmds: set[str] = set()
+    for root in homes:
+        for rel in rels:
+            raw = str(root / rel)
+            cmds.add(raw)
+            cmds.add(shlex.quote(raw))
+    return cmds
+
+
+def _is_migrated_lab(lab: Path, home: Path) -> bool:
+    return os.path.realpath(os.fspath(lab)) == os.path.realpath(os.fspath(home / paths.LAB))
+
+
+def legacy_commands(lab: Path, home: Path | None = None, *, target_cfg: str | None = None) -> set[str]:
+    """Legacy hook commands to strip when connecting lab (pre-move bin/, ~/.atlas/hooks, and migrated ~/atlas-lab)."""
+    h = Path(home).expanduser() if home is not None else Path.home()
+    lab = Path(lab).expanduser()
+    cfg = target_cfg or paths.config_rel(h)
+    cmds: set[str] = set(old_commands(lab))
+    if cfg != paths.LEGACY_CONFIG:
+        cmds |= _home_hook_commands(lab, paths.LEGACY_CONFIG, h)
+    if _is_migrated_lab(lab, h):
+        old_lab = h / paths.LEGACY_LAB
+        cmds |= old_commands(old_lab)
+        cmds |= _home_hook_commands(old_lab, paths.LEGACY_CONFIG, h)
+        cmds |= _home_hook_commands(old_lab, paths.CONFIG, h)
+    current = set(hook_commands(lab, cfg=cfg, home=h))
+    return cmds - current
+
+
+def stale_hook_rels(lab: Path, home: Path | None = None) -> list[str]:
+    """Old-lab hook scripts copied into ~/.heliopause/hooks/ that should be removed when connecting ~/heliopause-lab."""
+    h = Path(home).expanduser() if home is not None else Path.home()
+    lab = Path(lab).expanduser()
+    if paths.config_rel(h) != paths.CONFIG or not _is_migrated_lab(lab, h):
+        return []
+    old_lab = h / paths.LEGACY_LAB
+    current = set(hook_rels(lab, cfg=paths.CONFIG, home=h))
+    return [rel for rel in hook_rels(old_lab, cfg=paths.CONFIG, home=h) if rel not in current]
+
+
+def has_legacy_hooks(lab: Path, home: Path | None = None) -> bool:
+    """Read-only: True when ~/.claude/settings.json has legacy hook entries that migrating to lab should replace."""
+    h = Path(home).expanduser() if home is not None else Path.home()
+    try:
+        s_root, s_rel = labfs.home(".claude/settings.json", lab=lab, base_home=h)
+        raw = labfs.read(s_root, s_rel)
+    except OSError:
+        return False
+    if raw is None:
+        return False
+    try:
+        data = json.loads(raw.decode("utf-8"))
+    except (UnicodeError, json.JSONDecodeError):
+        return False
+    if not isinstance(data, dict):
+        return False
+    legacy = legacy_commands(lab, home=h, target_cfg=paths.CONFIG)
+    return _strip(data, legacy) != data
 
 
 def _guarded(text: str, entry: str) -> str:
@@ -179,6 +254,16 @@ class _Batch:
         self._write(root, rel, data.encode("utf-8") if isinstance(data, str) else data, mode)
         self._undo.append((root, rel, old))
 
+    def drop(self, root: Path, rel: str) -> None:
+        st = labfs.lstat(root, rel)
+        if st is None:
+            return
+        before = labfs.read(root, rel)  # refuses a symlink or a hard-linked file
+        if before is None:
+            return
+        labfs.unlink(root, rel)
+        self._undo.append((root, rel, (before, stat.S_IMODE(st.st_mode))))
+
     def rollback(self) -> list[str]:
         """Undo every write. Returns one line per path it could not put back; empty means all restored."""
         failed = []
@@ -220,17 +305,18 @@ def _is_present(hook_groups: list, cmd_path: str) -> bool:
     return False
 
 
-def run(argv: list[str] | None = None) -> int:
+def run(argv: list[str] | None = None, *, home: Path | None = None) -> int:
     parser = argparse.ArgumentParser(prog="atlas hooks", description="Connect Claude Code hooks")
-    parser.add_argument("--lab", default="~/atlas-lab")
+    parser.add_argument("--lab", default=None, help="lab folder (default: ~/heliopause-lab, or an existing ~/atlas-lab)")
     parser.add_argument("--yes", action="store_true")
     parser.add_argument("--snippet", action="store_true")
     args = parser.parse_args(argv)
 
-    lab_dir = Path(args.lab).expanduser()
+    h = Path(home).expanduser() if home is not None else Path.home()
+    lab_dir = paths.lab_dir(args.lab, home=h)
     if not lab_dir.is_absolute():
         lab_dir = lab_dir.resolve()
-    labfs.refuse_lab(lab_dir, "atlas hooks")
+    labfs.refuse_lab(lab_dir, "atlas hooks", home=h)
 
     if not (lab_dir / "atlas.json").is_file():
         print(f"atlas hooks: run atlas init first ({lab_dir / 'atlas.json'} not found)", file=sys.stderr)
@@ -242,18 +328,26 @@ def run(argv: list[str] | None = None) -> int:
         # Builds with memory lite: the recall hook runs its tools from the owner-only folder only, never the lab.
         print(f"note: the recall hook stays quiet until its tools are in {_memory.tools_dir()}: run atlas memory --lab {shlex.quote(str(lab_dir))}")
 
-    settings_path = Path.home() / ".claude" / "settings.json"
-    home_root = Path(labfs.real_root(Path.home()))
-    start_rel, recall_rel = hook_rels(lab_dir)
-    start_cmd, recall_cmd = hook_commands(lab_dir)
+    settings_path = h / ".claude" / "settings.json"
+    home_root = Path(labfs.real_root(h))
+    cur_hooks_dir = hooks_dir(home=h)
+    start_rel, recall_rel = hook_rels(lab_dir, home=h)
+    start_cmd, recall_cmd = hook_commands(lab_dir, home=h)
+    stale_candidates = stale_hook_rels(lab_dir, home=h)
     try:
         # Everything outside the lab goes through labfs.home(): an allow-listed name, your own real folders.
-        s_root, s_rel = labfs.home(".claude/settings.json", lab=lab_dir)
-        start_root, _ = labfs.home(start_rel, lab=lab_dir)
-        labfs.home(recall_rel, lab=lab_dir)
-        hooks_st = labfs.lstat(home_root, HOOKS_DIR)
+        s_root, s_rel = labfs.home(".claude/settings.json", lab=lab_dir, base_home=h)
+        start_root, _ = labfs.home(start_rel, lab=lab_dir, base_home=h)
+        labfs.home(recall_rel, lab=lab_dir, base_home=h)
+        hooks_st = labfs.lstat(home_root, cur_hooks_dir)
         if hooks_st is not None and (hooks_st.st_mode & 0o077 or hooks_st.st_uid != os.getuid()):
-            raise labfs.Refused(str(home_root / HOOKS_DIR), f"it must be yours and owner-only (mode {stat.S_IMODE(hooks_st.st_mode):o}; fix: chmod 700 ~/{HOOKS_DIR})")
+            raise labfs.Refused(str(home_root / cur_hooks_dir), f"it must be yours and owner-only (mode {stat.S_IMODE(hooks_st.st_mode):o}; fix: chmod 700 ~/{cur_hooks_dir})")
+        stale_rels: list[str] = []
+        if not args.snippet:
+            for rel in stale_candidates:
+                if labfs.lstat(start_root, rel) is not None:
+                    labfs.home(rel, lab=lab_dir, base_home=h)
+                    stale_rels.append(rel)
         raw = labfs.read(s_root, s_rel)
     except OSError as err:
         print(f"atlas hooks: {err}. Nothing written.", file=sys.stderr)
@@ -309,9 +403,11 @@ def run(argv: list[str] | None = None) -> int:
         print(f"atlas hooks: {err}. Nothing written.", file=sys.stderr)
         return 1
 
-    old = old_commands(lab_dir)
-    new_settings = _strip(orig_settings, old) if settings_existed else {}
-    migrating = new_settings != orig_settings
+    old_in_lab = old_commands(lab_dir)
+    legacy = legacy_commands(lab_dir, home=h)
+    new_settings = _strip(orig_settings, legacy) if settings_existed else {}
+    migrating_in_lab = settings_existed and (_strip(orig_settings, old_in_lab) != orig_settings)
+    migrating_legacy = settings_existed and (new_settings != orig_settings) and not migrating_in_lab
     if "hooks" not in new_settings or not isinstance(new_settings["hooks"], dict):
         new_settings["hooks"] = {}
 
@@ -340,7 +436,8 @@ def run(argv: list[str] | None = None) -> int:
             tofile=str(settings_path),
         )
     )
-    planned = [Path.home() / rel for rel, _, _ in home_writes] + [lab_dir / rel for rel, _, _ in lab_writes]
+    planned = [h / rel for rel, _, _ in home_writes] + [lab_dir / rel for rel, _, _ in lab_writes]
+    planned_removes = [h / rel for rel in stale_rels]
     snippet_file = lab_dir / "claude-hooks.json"
     snippet_text = json.dumps(snippet_obj, indent=2) + "\n"
     if args.snippet:
@@ -353,11 +450,15 @@ def run(argv: list[str] | None = None) -> int:
             return 1
         print(f"atlas hooks --snippet: {settings_path} is not touched; paste the hooks from {snippet_file} yourself.")
     elif changed and diff:
-        if migrating:
+        if migrating_in_lab:
             print(
-                f"atlas hooks: moving the hook scripts out of the lab, where agents can edit them, to ~/{HOOKS_DIR}/ "
+                f"atlas hooks: moving the hook scripts out of the lab, where agents can edit them, to ~/{cur_hooks_dir}/ "
                 f"(yours, 0700). The old {lab_dir}/bin entries are removed from {settings_path}; "
                 "the old scripts stay in the lab and nothing runs them."
+            )
+        elif migrating_legacy:
+            print(
+                f"atlas hooks: replacing legacy hook entries in {settings_path} with ~/{cur_hooks_dir}/ (yours, 0700)."
             )
         sys.stdout.writelines(diff)
     elif not changed:
@@ -385,9 +486,12 @@ def run(argv: list[str] | None = None) -> int:
         batch = _Batch()
         try:
             if home_writes:
-                batch.make_dir(start_root, HOOKS_DIR, 0o700)
+                batch.make_dir(start_root, cur_hooks_dir, 0o700)
             for rel, text, mode in home_writes:
                 batch.write(start_root, rel, text, mode)
+            if not snippet:
+                for rel in stale_rels:
+                    batch.drop(start_root, rel)
             if any(rel == "bin/atlas" for rel, _, _ in lab_writes):
                 batch.make_dir(lab_dir, "bin")
             for rel, text, mode in lab_writes:
@@ -424,12 +528,14 @@ def run(argv: list[str] | None = None) -> int:
 
     if args.snippet:
         changed = False
-    if not changed and not planned:
+    if not changed and not planned and not planned_removes:
         if args.snippet:
             print(f"atlas hooks --snippet: {snippet_file} and the hook files are current; nothing to write.")
         return 0
     for path in planned:
         print(f"plan: write {path}")
+    for path in planned_removes:
+        print(f"plan: remove {path}")
     # Every write asks first, --snippet included; a refusal exits 1, so a script can tell "declined" from "connected".
     if not _confirm():
         return 1
