@@ -7,6 +7,7 @@ nothing here writes unless you run `heliopause migrate --apply --yes`.
 from __future__ import annotations
 
 import errno
+import hashlib
 import os
 import secrets
 import shlex
@@ -140,23 +141,28 @@ def _scan(base: Path, rel: str) -> tuple[list[tuple[str, int]], list[tuple[str, 
     return folders, files
 
 
-def _copy(base: Path, src: str, dst: str, tree: tuple) -> None:
-    """Copy a scanned tree to base/dst through labfs, keeping each file's and folder's mode. Never replaces a file."""
+def _copy(base: Path, src: str, dst: str, tree: tuple) -> dict[str, str]:
+    """Copy a scanned tree to base/dst through labfs, keeping each file's and folder's mode. Returns SHA-256 per source relpath."""
     from atlas import labfs
 
     folders, files = tree
+    hashes: dict[str, str] = {}
     for rel, mode in folders:
         target = dst + rel[len(src):]
         labfs.makedirs(base, target, mode | 0o700)
     for rel, mode, size in files:
-        data = labfs.read(base, rel, cap=size) or b""
+        data = labfs.read(base, rel, cap=size)
+        if data is None or len(data) != size:
+            raise OSError(errno.EIO, "source file changed during copy", os.path.join(str(base), rel))
+        hashes[rel] = hashlib.sha256(data).hexdigest()
         labfs.write(base, dst + rel[len(src):], data, mode, new_only=True)
     for rel, mode in reversed(folders):
         labfs.chmod(base, dst + rel[len(src):], mode, folder=True)
+    return hashes
 
 
-def _verify_copy(base: Path, src: str, dst: str, tree: tuple) -> None:
-    """Confirm every scanned folder and regular file exists in base/dst with the expected size."""
+def _verify_copy(base: Path, src: str, dst: str, tree: tuple, hashes: dict[str, str] | None = None) -> None:
+    """Confirm every scanned folder and regular file exists in base/dst with matching size and SHA-256."""
     from atlas import labfs
 
     folders, files = tree
@@ -170,6 +176,18 @@ def _verify_copy(base: Path, src: str, dst: str, tree: tuple) -> None:
         st = labfs.lstat(base, target)
         if st is None or not stat.S_ISREG(st.st_mode) or st.st_size != size:
             raise OSError(errno.EIO, "copied file incomplete", os.path.join(str(base), target))
+        copied = labfs.read(base, target, cap=size)
+        if copied is None or len(copied) != size:
+            raise OSError(errno.EIO, "copied file incomplete", os.path.join(str(base), target))
+        if hashes is not None and rel in hashes:
+            expected = hashes[rel]
+        else:
+            src_data = labfs.read(base, rel, cap=size)
+            if src_data is None or len(src_data) != size:
+                raise OSError(errno.EIO, "source file changed during verify", os.path.join(str(base), rel))
+            expected = hashlib.sha256(src_data).hexdigest()
+        if hashlib.sha256(copied).hexdigest() != expected:
+            raise OSError(errno.EIO, "copied file checksum mismatch", os.path.join(str(base), target))
 
 
 def _rewrite_copied_paths(base: Path, cfg_rel: str) -> None:
@@ -270,15 +288,16 @@ def migrate_legacy_layout(home: Path | str | None = None, apply: bool = False, y
     try:
         labfs.makedirs(base, backup, 0o700)
         for old, new in pairs:
-            _copy(base, old, f"{backup}/{old}", trees[old])
+            bhashes = _copy(base, old, f"{backup}/{old}", trees[old])
+            _verify_copy(base, old, f"{backup}/{old}", trees[old], bhashes)
         for old, new in pairs:
             stage = f".{new.lstrip('.')}.{tag}"
             if os.path.lexists(base / stage):
                 raise labfs.Refused(str(base / stage), "staging folder already exists")
             staged.append((old, new, stage))
             labfs.makedirs(base, stage, 0o700)
-            _copy(base, old, stage, trees[old])
-            _verify_copy(base, old, stage, trees[old])
+            shashes = _copy(base, old, stage, trees[old])
+            _verify_copy(base, old, stage, trees[old], shashes)
         stage_map = {new: stage for _, new, stage in staged}
         if CONFIG in stage_map and LAB in stage_map:
             _rewrite_copied_paths(base, stage_map[CONFIG])
@@ -302,27 +321,28 @@ def migrate_legacy_layout(home: Path | str | None = None, apply: bool = False, y
                 rollback_errors.append((stage, rb_err))
                 if stage not in leftovers:
                     leftovers.append(stage)
-        if not isinstance(err, OSError):
-            raise
+        label = str(err) or type(err).__name__
         if not rollback_errors:
             print(
-                f"heliopause migrate: {err}. Your old folders are untouched and no partial new folder was left behind. "
+                f"heliopause migrate: {label}. Your old folders are untouched and no partial new folder was left behind. "
                 f"Backup: {_tilde(base / backup, base)}",
                 file=sys.stderr,
             )
-            return 1
-        for _old, new, stage in staged:
-            for rel in (new, stage):
-                if os.path.lexists(base / rel) and rel not in leftovers:
-                    leftovers.append(rel)
-        shown = " ".join(_tilde(base / rel, base) for rel in leftovers)
-        reasons = "; ".join(f"{_tilde(base / rel, base)}: {rb}" for rel, rb in rollback_errors)
-        print(
-            f"heliopause migrate: {err}. Rollback did not finish ({reasons}). "
-            f"Paths that may still exist: {shown}. Remove them with: rm -rf {shown}. "
-            f"Your old folders and the backup ({_tilde(base / backup, base)}) are untouched.",
-            file=sys.stderr,
-        )
+        else:
+            for _old, new, stage in staged:
+                for rel in (new, stage):
+                    if os.path.lexists(base / rel) and rel not in leftovers:
+                        leftovers.append(rel)
+            shown = " ".join(_tilde(base / rel, base) for rel in leftovers)
+            reasons = "; ".join(f"{_tilde(base / rel, base)}: {rb}" for rel, rb in rollback_errors)
+            print(
+                f"heliopause migrate: {label}. Rollback did not finish ({reasons}). "
+                f"Paths that may still exist: {shown}. Remove them with: rm -rf {shown}. "
+                f"Your old folders and the backup ({_tilde(base / backup, base)}) are untouched.",
+                file=sys.stderr,
+            )
+        if not isinstance(err, OSError):
+            raise
         return 1
 
     if repoint_hooks:

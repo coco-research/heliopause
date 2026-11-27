@@ -1250,7 +1250,7 @@ def apply(args) -> int:
         _offer_plugin(home)
         return 0
     sys.stdout.write(_render_plan(actions, lab, undo, suggestions, work))
-    # A refusal exits 1, so a script can tell "declined" from "applied".
+    # A refusal exits non-zero (1 interactively, 2 without a terminal or --yes) so scripts can tell "declined" from "applied".
     if not _ask(args.yes, "Apply these changes? [y/N] "):
         return declined
     if name is None:
