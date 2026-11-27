@@ -286,21 +286,41 @@ def migrate_legacy_layout(home: Path | str | None = None, apply: bool = False, y
             labfs.rename_dir(base, stage, new)
             published.append((stage, new))
     except BaseException as err:
+        rollback_errors: list[tuple[str, OSError]] = []
+        leftovers: list[str] = []
         for stage, new in reversed(published):
             try:
                 labfs.rename_dir(base, new, stage)
-            except OSError:
-                pass
+            except OSError as rb_err:
+                rollback_errors.append((new, rb_err))
+                if new not in leftovers:
+                    leftovers.append(new)
         for _old, _new, stage in reversed(staged):
             try:
                 labfs.remove_tree(base, stage)
-            except OSError:
-                pass
+            except OSError as rb_err:
+                rollback_errors.append((stage, rb_err))
+                if stage not in leftovers:
+                    leftovers.append(stage)
         if not isinstance(err, OSError):
             raise
+        if not rollback_errors:
+            print(
+                f"heliopause migrate: {err}. Your old folders are untouched and no partial new folder was left behind. "
+                f"Backup: {_tilde(base / backup, base)}",
+                file=sys.stderr,
+            )
+            return 1
+        for _old, new, stage in staged:
+            for rel in (new, stage):
+                if os.path.lexists(base / rel) and rel not in leftovers:
+                    leftovers.append(rel)
+        shown = " ".join(_tilde(base / rel, base) for rel in leftovers)
+        reasons = "; ".join(f"{_tilde(base / rel, base)}: {rb}" for rel, rb in rollback_errors)
         print(
-            f"heliopause migrate: {err}. Your old folders are untouched and no partial new folder was left behind. "
-            f"Backup: {_tilde(base / backup, base)}",
+            f"heliopause migrate: {err}. Rollback did not finish ({reasons}). "
+            f"Paths that may still exist: {shown}. Remove them with: rm -rf {shown}. "
+            f"Your old folders and the backup ({_tilde(base / backup, base)}) are untouched.",
             file=sys.stderr,
         )
         return 1

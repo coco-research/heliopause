@@ -343,3 +343,32 @@ def test_mid_copy_failure_leaves_no_partial_new_lab_and_keeps_default_lab(legacy
     assert paths.config_dir(legacy) == legacy / ".atlas"
     assert _snap(legacy / ".atlas") == old_cfg_snap
     assert _snap(legacy / "atlas-lab") == old_lab_snap
+
+
+def test_rollback_rename_failure_reports_leftover_paths_and_removal_command(legacy, monkeypatch, capsys):
+    """If rollback fails, migrate names the leftover paths + rm -rf command and never claims a clean state."""
+    monkeypatch.setenv("HOME", str(legacy))
+    old_cfg_snap = _snap(legacy / ".atlas")
+    old_lab_snap = _snap(legacy / "atlas-lab")
+    real_rename = labfs.rename_dir
+
+    def flaky_rename(root, src, dst):
+        if str(dst) == paths.LAB:
+            raise OSError(13, "Permission denied", str(Path(root) / dst))
+        if str(src) == paths.CONFIG:
+            raise OSError(16, "Device or resource busy", str(Path(root) / src))
+        return real_rename(root, src, dst)
+
+    monkeypatch.setattr(labfs, "rename_dir", flaky_rename)
+    rc = paths.migrate_legacy_layout(home=legacy, apply=True, yes=True)
+    assert rc == 1
+    err = capsys.readouterr().err
+    assert "no partial new folder was left behind" not in err
+    assert "~/.heliopause" in err
+    assert "rm -rf ~/.heliopause" in err
+    assert "Your old folders and the backup" in err
+    assert "untouched" in err
+    assert (legacy / ".heliopause").is_dir()
+    assert _snap(legacy / ".atlas") == old_cfg_snap
+    assert _snap(legacy / "atlas-lab") == old_lab_snap
+    assert list(legacy.glob(".heliopause-backup-*"))
