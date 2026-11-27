@@ -1102,13 +1102,16 @@ def _render_plan(actions, lab: Path, undo: str, suggestions: list[dict], work: b
     return "\n".join(lines) + "\n"
 
 
+NONINTERACTIVE = "Non-interactive terminal: re-run with --yes to apply. Nothing changed."
+
+
 def _ask(yes: bool, prompt: str) -> bool:
     """One [y/N]. --yes answers it. No terminal, n, Enter, EOF and Ctrl-C all say no."""
     if yes:
         return True
     if not sys.stdin.isatty():
-        print("atlas adopt: non-interactive terminal: re-run with --yes", file=sys.stderr)
-        print("Nothing changed yet.")
+        # WHY: never read a pipe or /dev/null for an answer (it can hang). The plan is already printed above.
+        print(NONINTERACTIVE)
         return False
     try:
         answer = input(prompt)
@@ -1212,6 +1215,8 @@ def apply(args) -> int:
     if err:
         print(err, file=sys.stderr)
         return 2
+    # A refusal exits 1 so a script can tell "declined"; with no terminal and no --yes it exits 2 instead.
+    declined = 1 if args.yes or sys.stdin.isatty() else 2
     try:
         raw = labfs.read(lab, "atlas.json") if lab.is_dir() else None
         atlas = json.loads(raw.decode("utf-8")) if raw is not None else None
@@ -1225,7 +1230,7 @@ def apply(args) -> int:
         report = _ensure_scan(home, lab, args.yes)
         if report is None:
             # Declined before the scan: no transcript was opened and nothing was written.
-            return 1
+            return declined
         preview = name or "Lead"
         suggestions = _suggestions(report)
         actions = _plan(lab, preview, work, suggestions)
@@ -1247,7 +1252,7 @@ def apply(args) -> int:
     sys.stdout.write(_render_plan(actions, lab, undo, suggestions, work))
     # A refusal exits 1, so a script can tell "declined" from "applied".
     if not _ask(args.yes, "Apply these changes? [y/N] "):
-        return 1
+        return declined
     if name is None:
         try:
             typed = input("Lead's name [Lead]: ")

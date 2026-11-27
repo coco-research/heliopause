@@ -347,3 +347,51 @@ def test_open_zip_read_scans_and_closes_the_fd(tmp_path):
             pass
     with pytest.raises(OSError):
         os.lseek(bad, 0, os.SEEK_SET)
+
+
+def test_rename_dir_and_remove_tree_never_follow_symlinks(root, tmp_path):
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    (outside / "keep.txt").write_bytes(b"keep")
+    stage_cfg = ".heliopause.migrating-1234-deadbeef"
+    stage_lab = ".heliopause-lab.migrating-5678-01234567"
+    (root / stage_cfg).mkdir()
+    (root / stage_cfg / "sub").mkdir()
+    (root / stage_cfg / "sub" / "a.txt").write_bytes(b"ok")
+    (root / "existing").mkdir()
+    with pytest.raises(FileExistsError):
+        labfs.rename_dir(root, stage_cfg, "existing")
+    labfs.rename_dir(root, stage_cfg, stage_lab)
+    assert not (root / stage_cfg).exists() and (root / stage_lab / "sub" / "a.txt").read_bytes() == b"ok"
+    labfs.remove_tree(root, stage_lab)
+    assert not (root / stage_lab).exists()
+    labfs.remove_tree(root, ".heliopause.migrating-9999-abcdef01")
+    (root / "link").symlink_to(outside, target_is_directory=True)
+    with pytest.raises(labfs.Refused):
+        labfs.rename_dir(root, "link", "moved")
+    (root / stage_cfg).symlink_to(outside, target_is_directory=True)
+    with pytest.raises(labfs.Refused):
+        labfs.remove_tree(root, stage_cfg)
+    assert (outside / "keep.txt").read_bytes() == b"keep"
+
+
+@pytest.mark.parametrize(
+    "bad_name",
+    [
+        "foo",
+        ".heliopause",
+        "heliopause-lab",
+        ".heliopause.migrating-bad",
+        ".heliopause.migrating-123-1234567",
+        ".heliopause.migrating-123-123456789",
+        "sub/.heliopause.migrating-123-abcdef01",
+    ],
+)
+def test_remove_tree_refuses_non_staging_names(root, bad_name):
+    target = root / bad_name
+    target.mkdir(parents=True)
+    marker = target / "keep.txt"
+    marker.write_bytes(b"untouched")
+    with pytest.raises(labfs.Refused):
+        labfs.remove_tree(root, bad_name)
+    assert marker.read_bytes() == b"untouched"

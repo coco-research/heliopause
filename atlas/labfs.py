@@ -471,6 +471,77 @@ def rename(root: Path, src: str | Path, dst: str | Path, *, replace: bool = Fals
         os.close(sfd)
 
 
+def rename_dir(root: Path, src: str | Path, dst: str | Path) -> None:
+    """Atomically rename a real folder root/src to root/dst below link-free folder chains. Never overwrites dst."""
+    sparts, dparts = parts_of(src), parts_of(dst)
+    base = real_root(root)
+    sshown, dshown = os.path.join(base, *sparts), os.path.join(base, *dparts)
+    sfd = _open_dirs(base, sparts[:-1], False, sshown)
+    try:
+        dfd = _open_dirs(base, dparts[:-1], False, dshown)
+        try:
+            st = _lstat(sparts[-1], sfd)
+            if st is None:
+                raise FileNotFoundError(errno.ENOENT, "not found", sshown)
+            if stat.S_ISLNK(st.st_mode) or not stat.S_ISDIR(st.st_mode):
+                raise Refused(sshown, "it is not a plain folder")
+            if _lstat(dparts[-1], dfd) is not None:
+                raise FileExistsError(errno.EEXIST, "already exists", dshown)
+            os.rename(sparts[-1], dparts[-1], src_dir_fd=sfd, dst_dir_fd=dfd)
+        finally:
+            os.close(dfd)
+    finally:
+        os.close(sfd)
+
+
+def _remove_tree_fd(dfd: int, name: str, shown: str) -> None:
+    st = _lstat(name, dfd)
+    if st is None:
+        return
+    if stat.S_ISLNK(st.st_mode) or not stat.S_ISDIR(st.st_mode):
+        raise Refused(shown, "it is not a plain folder")
+    cfd = os.open(name, _DIR, dir_fd=dfd)
+    try:
+        os.fchmod(cfd, stat.S_IMODE(st.st_mode) | 0o700)
+        for child in os.listdir(cfd):
+            cst = _lstat(child, cfd)
+            if cst is None:
+                continue
+            cshown = os.path.join(shown, child)
+            if stat.S_ISDIR(cst.st_mode):
+                _remove_tree_fd(cfd, child, cshown)
+            else:
+                _check_file(cst, cshown)
+                os.unlink(child, dir_fd=cfd)
+    finally:
+        os.close(cfd)
+    os.rmdir(name, dir_fd=dfd)
+
+
+_MIGRATE_STAGING_RE = re.compile(r"\.(?:heliopause|heliopause-lab)\.migrating-\d+-[0-9a-f]{8}")
+
+
+def remove_tree(root: Path, rel: str | Path) -> None:
+    """Remove a migrate staging folder tree below root without following any symlink. Absent folder is a no-op.
+
+    Refuses any path other than a single top-level `.heliopause.migrating-<pid>-<hex8>` or
+    `.heliopause-lab.migrating-<pid>-<hex8>` folder name before touching the filesystem.
+    """
+    parts = parts_of(rel)
+    base = real_root(root)
+    shown = os.path.join(base, *parts)
+    if len(parts) != 1 or not _MIGRATE_STAGING_RE.fullmatch(parts[0]):
+        raise Refused(shown, "not a migrate staging folder")
+    try:
+        dfd = _open_dirs(base, (), False, shown)
+    except FileNotFoundError:
+        return
+    try:
+        _remove_tree_fd(dfd, parts[0], shown)
+    finally:
+        os.close(dfd)
+
+
 def chmod(root: Path, rel: str | Path, mode: int, *, folder: bool = False) -> None:
     """Set the mode of a regular, singly linked file (or a real folder) on its no-follow descriptor."""
     parts = parts_of(rel)

@@ -223,7 +223,14 @@ def main(argv: list[str] | None = None, prog: str = "heliopause") -> int:
     verbs.add_parser("claim").add_argument("id")
     verbs.add_parser("done").add_argument("id")
     verbs.add_parser("inbox").add_argument("--me", required=True)
+    migrate = verbs.add_parser("migrate", help="move ~/.atlas and ~/atlas-lab to ~/.heliopause and ~/heliopause-lab (never automatic)")
+    mode = migrate.add_mutually_exclusive_group()
+    mode.add_argument("--dry-run", action="store_true", help="print the plan and change nothing (the default)")
+    mode.add_argument("--apply", action="store_true", help="back up, then copy; needs --yes")
+    migrate.add_argument("--yes", action="store_true", help="confirm --apply")
     args = parser.parse_args(argv)
+    if args.verb == "migrate":
+        return paths.migrate_legacy_layout(apply=args.apply, yes=args.yes)
     if args.verb == "approve":
         return _approve(args)
     if args.verb == "brief" and args.status:
