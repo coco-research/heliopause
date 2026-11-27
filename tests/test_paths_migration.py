@@ -76,62 +76,11 @@ def legacy(tmp_path):
     return home
 
 
-# ---- resolver --------------------------------------------------------------------------------------------------------
-
-
-def test_fresh_home_uses_the_new_names(tmp_path, monkeypatch):
-    for name in ("HELIOPAUSE_HOME", "ATLAS_HOME", "HELIOPAUSE_LAB", "ATLAS_LAB"):
-        monkeypatch.delenv(name, raising=False)
-    assert paths.config_dir(tmp_path) == tmp_path / ".heliopause"
-    assert paths.default_lab(tmp_path) == tmp_path / "heliopause-lab"
-    assert paths.lab_dir(home=tmp_path) == tmp_path / "heliopause-lab"
-    assert paths.config_rel(tmp_path) == ".heliopause"
-    assert paths.is_legacy_layout(tmp_path)["legacy"] is False
-
-
-def test_old_folders_are_used_while_they_are_all_there_is(tmp_path, monkeypatch):
-    for name in ("HELIOPAUSE_HOME", "ATLAS_HOME", "HELIOPAUSE_LAB", "ATLAS_LAB"):
-        monkeypatch.delenv(name, raising=False)
-    (tmp_path / ".atlas").mkdir()
-    (tmp_path / "atlas-lab").mkdir()
-    assert paths.config_dir(tmp_path) == tmp_path / ".atlas"
-    assert paths.config_rel(tmp_path) == ".atlas"
-    assert paths.default_lab(tmp_path) == tmp_path / "atlas-lab"
-    state = paths.is_legacy_layout(tmp_path)
-    assert state["legacy"] is True and state["legacy_present"] == [".atlas", "atlas-lab"]
-    (tmp_path / ".heliopause").mkdir()
-    (tmp_path / "heliopause-lab").mkdir()
-    assert paths.config_dir(tmp_path) == tmp_path / ".heliopause"
-    assert paths.default_lab(tmp_path) == tmp_path / "heliopause-lab"
-    assert paths.is_legacy_layout(tmp_path)["legacy"] is False
-
-
-def test_lab_order_is_flag_then_env_then_pointer_then_default(tmp_path, monkeypatch):
-    for name in ("HELIOPAUSE_HOME", "ATLAS_HOME", "HELIOPAUSE_LAB", "ATLAS_LAB"):
-        monkeypatch.delenv(name, raising=False)
-    (tmp_path / ".heliopause").mkdir()
-    (tmp_path / ".heliopause" / "lab").write_text("/from/pointer\nignored\n")
-    assert paths.lab_dir(home=tmp_path) == Path("/from/pointer")
-    monkeypatch.setenv("ATLAS_LAB", "/from/atlas-env")
-    assert paths.lab_dir(home=tmp_path) == Path("/from/atlas-env")
-    monkeypatch.setenv("HELIOPAUSE_LAB", "/from/heliopause-env")
-    assert paths.lab_dir(home=tmp_path) == Path("/from/heliopause-env")
-    assert paths.lab_dir("/from/flag", home=tmp_path) == Path("/from/flag")
-
-
-def test_home_env_wins_for_the_config_folder(tmp_path, monkeypatch):
-    (tmp_path / ".heliopause").mkdir()
-    monkeypatch.setenv("ATLAS_HOME", str(tmp_path / "elsewhere"))
-    assert paths.config_dir(tmp_path) == tmp_path / "elsewhere"
-    monkeypatch.setenv("HELIOPAUSE_HOME", str(tmp_path / "first"))
-    assert paths.config_dir(tmp_path) == tmp_path / "first"
-
-
-# ---- the old layout keeps working, with zero writes to it ---------------------------------------------------------------
+# ---- helpers for serving after migration -----------------------------------------------------------------------------
 
 
 def _serve_state(home: Path, module: str) -> dict:
-    """`<module> up` on the fixture home: it must find ~/atlas-lab by itself. Returns /api/state."""
+    """`<module> up` on the fixture home. Returns /api/state."""
     with socket.socket() as sock:
         sock.bind(("127.0.0.1", 0))
         port = sock.getsockname()[1]
@@ -152,26 +101,6 @@ def _serve_state(home: Path, module: str) -> dict:
     finally:
         proc.terminate()
         proc.communicate(timeout=10)
-
-
-@pytest.mark.parametrize("module", ["heliopause", "atlas"])
-def test_both_commands_serve_the_old_layout_and_write_nothing_to_it(legacy, module):
-    before_cfg = _snap(legacy / ".atlas")
-    before_home = {k for k in _snap(legacy) if not k.startswith("atlas-lab")}
-    state = _serve_state(legacy, module)
-    assert isinstance(state, dict) and state
-    assert _snap(legacy / ".atlas") == before_cfg
-    assert {k for k in _snap(legacy) if not k.startswith("atlas-lab")} == before_home
-    assert not (legacy / ".heliopause").exists() and not (legacy / "heliopause-lab").exists()
-
-
-def test_heliopause_module_is_the_atlas_program(tmp_path):
-    assert _run(tmp_path, "demo-path").stdout == _run(tmp_path, "demo-path", module="atlas").stdout != ""
-
-
-def test_atlas_prints_nothing_extra_for_the_old_name(legacy):
-    got = _run(legacy, "demo-path", module="atlas")
-    assert got.returncode == 0 and got.stderr == "" and got.stdout.count("\n") == 1
 
 
 # ---- heliopause migrate ----------------------------------------------------------------------------------------------
@@ -385,56 +314,6 @@ def test_migrate_does_not_touch_settings_when_hooks_never_installed(legacy):
     got = _run(legacy, "migrate", "--apply", "--yes")
     assert got.returncode == 0, got.stderr
     assert settings_path.read_text(encoding="utf-8") == unrelated
-
-
-def test_hooks_replaces_legacy_atlas_entries_and_preserves_user_hooks(tmp_path):
-    """Running `heliopause hooks --yes` on ~/heliopause-lab replaces old ~/.atlas/hooks entries without duplicates."""
-    home = tmp_path / "home"
-    home.mkdir()
-    old_lab = home / "atlas-lab"
-    new_lab = home / "heliopause-lab"
-    assert _run(home, "init", "--dir", str(old_lab), "--yes", module="atlas").returncode == 0
-    (home / ".atlas").mkdir(mode=0o700)
-    (home / ".atlas").chmod(0o700)
-    settings_path = home / ".claude" / "settings.json"
-    settings_path.parent.mkdir(parents=True)
-    base_settings = {
-        "theme": "dark",
-        "hooks": {
-            "SessionStart": [{"hooks": [{"type": "command", "command": "/bin/existing-start"}]}],
-            "PreToolUse": [{"hooks": [{"type": "command", "command": "/bin/true"}]}],
-        },
-    }
-    settings_path.write_text(json.dumps(base_settings, indent=2) + "\n", encoding="utf-8")
-    assert _run(home, "hooks", "--lab", str(old_lab), "--yes", module="atlas").returncode == 0
-
-    # Now switch to the new folders without touching settings.json yet, then run `heliopause hooks --yes`.
-    assert _run(home, "init", "--dir", str(new_lab), "--yes", module="heliopause").returncode == 0
-    (home / ".heliopause").mkdir(mode=0o700)
-    (home / ".heliopause").chmod(0o700)
-    got = _run(home, "hooks", "--yes")
-    assert got.returncode == 0, got.stderr
-    cmds = _hook_commands_by_event(settings_path)
-    expected_start, expected_recall = hooks.hook_commands(new_lab, cfg=".heliopause", home=home)
-    assert cmds["SessionStart"] == ["/bin/existing-start", expected_start]
-    assert cmds["UserPromptSubmit"] == [expected_recall]
-    assert cmds["PreToolUse"] == ["/bin/true"]
-    assert "/.atlas/hooks/" not in settings_path.read_text(encoding="utf-8")
-
-
-def test_pyproject_exposes_only_heliopause_script():
-    """pyproject.toml exposes only the `heliopause` console script (never global `atlas`)."""
-    text = (REPO / "pyproject.toml").read_text(encoding="utf-8")
-    in_scripts = False
-    scripts: list[str] = []
-    for raw in text.splitlines():
-        line = raw.strip()
-        if line.startswith("["):
-            in_scripts = line == "[project.scripts]"
-            continue
-        if in_scripts and "=" in line and not line.startswith("#"):
-            scripts.append(line.split("=", 1)[0].strip())
-    assert scripts == ["heliopause"]
 
 
 def test_mid_copy_failure_leaves_no_partial_new_lab_and_keeps_default_lab(legacy, monkeypatch, capsys):

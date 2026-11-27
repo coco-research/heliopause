@@ -518,17 +518,26 @@ def _remove_tree_fd(dfd: int, name: str, shown: str) -> None:
     os.rmdir(name, dir_fd=dfd)
 
 
+_MIGRATE_STAGING_RE = re.compile(r"\.(?:heliopause|heliopause-lab)\.migrating-\d+-[0-9a-f]{8}")
+
+
 def remove_tree(root: Path, rel: str | Path) -> None:
-    """Remove a real folder tree below root without following any symlink. Absent folder is a no-op."""
+    """Remove a migrate staging folder tree below root without following any symlink. Absent folder is a no-op.
+
+    Refuses any path other than a single top-level `.heliopause.migrating-<pid>-<hex8>` or
+    `.heliopause-lab.migrating-<pid>-<hex8>` folder name before touching the filesystem.
+    """
     parts = parts_of(rel)
     base = real_root(root)
     shown = os.path.join(base, *parts)
+    if len(parts) != 1 or not _MIGRATE_STAGING_RE.fullmatch(parts[0]):
+        raise Refused(shown, "not a migrate staging folder")
     try:
-        dfd = _open_dirs(base, parts[:-1], False, shown)
+        dfd = _open_dirs(base, (), False, shown)
     except FileNotFoundError:
         return
     try:
-        _remove_tree_fd(dfd, parts[-1], shown)
+        _remove_tree_fd(dfd, parts[0], shown)
     finally:
         os.close(dfd)
 
