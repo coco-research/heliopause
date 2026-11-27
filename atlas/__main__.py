@@ -429,6 +429,9 @@ class Handler(BaseHTTPRequestHandler):
 class _Server(ThreadingHTTPServer):
     # WHY: an open SSE stream is a request thread. Daemons let shutdown finish.
     daemon_threads = True
+    # WHY: the default listen backlog (5) drops connections when ~20 clients connect at once.
+    request_queue_size = 64
+    allow_reuse_address = True
     watcher = None
     poller = None
     demo = False

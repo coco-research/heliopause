@@ -11,7 +11,7 @@ from atlas.github import Poller, allowed, load_config
 
 SHA = "a" * 40
 SHA2 = "b" * 40
-CONFIG = {"org": "acme", "repos": {"alpha": "brain-atlas"}}
+CONFIG = {"org": "acme", "repos": {"alpha": "role-lead"}}
 
 FAKE_GH = """import json, sys
 from pathlib import Path
@@ -73,7 +73,7 @@ def test_states_and_shape(gh):
     snap = poller.snapshot()
     assert [pr["checks"] for pr in snap["prs"]] == ["red", "green", "pending", "none", "red"]
     assert snap["prs"][0] == {
-        "repo": "alpha", "node": "brain-atlas", "number": 1, "title": "Add thing",
+        "repo": "alpha", "node": "role-lead", "number": 1, "title": "Add thing",
         "updated": "2026-10-01T10:00:00Z", "checks": "red",
     }
     assert snap["stale"] is False and snap["updated"]
@@ -116,7 +116,7 @@ def test_cache_is_per_repo(gh):
         PULLS: [pull(1, SHA)], checks_path(SHA): runs(("completed", "success")),
         other: [pull(2, SHA)], f"repos/acme/beta/commits/{SHA}/check-runs?per_page=100": runs(("completed", "failure")),
     })
-    poller = Poller({"org": "acme", "repos": {"alpha": "brain-atlas", "beta": "brain-si"}})
+    poller = Poller({"org": "acme", "repos": {"alpha": "role-lead", "beta": "role-reviewer"}})
     poller.poll_once()
     assert {pr["repo"]: pr["checks"] for pr in poller.snapshot()["prs"]} == {"alpha": "green", "beta": "red"}
 
@@ -233,7 +233,7 @@ def test_bad_repos_json_keeps_the_server_up(tmp_path, monkeypatch):
         httpd.server_close()
 
 
-@pytest.mark.parametrize("raw", ["{}", "[]", '{"org": "acme"}', '{"org": "acme", "repos": ["alpha"]}', '{"repos": {"alpha": "brain-atlas"}}'])
+@pytest.mark.parametrize("raw", ["{}", "[]", '{"org": "acme"}', '{"org": "acme", "repos": ["alpha"]}', '{"repos": {"alpha": "role-lead"}}'])
 def test_load_config_rejects_bad_shapes(tmp_path, monkeypatch, raw):
     (tmp_path / "repos.json").write_text(raw)
     monkeypatch.setenv("ATLAS_MAPS_DIR", str(tmp_path))

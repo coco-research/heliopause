@@ -11,7 +11,7 @@ from zoneinfo import ZoneInfo
 ROOT = Path(__file__).resolve().parents[1]
 FIXTURE = ROOT / "tests" / "fixtures" / "solo-lab"
 PY = sys.executable
-FORBIDDEN = ("brain-", "dept-", "hq-cto", "factory-queue", "Courier", "Chief of Staff")
+FORBIDDEN = ("role-", "dept-", "hq-cto", "factory-queue", "Courier", "Chief of Staff")
 
 _STATE = """
 import json, os

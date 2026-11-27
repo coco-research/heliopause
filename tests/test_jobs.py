@@ -426,7 +426,7 @@ def test_pipe_parked_failing_healthy_and_recovered(tmp_path):
         {"id": "fail-3", "title": None, "model": None, "owner": "vp", "ts": iso(at(20))},
         {"id": "fail-2", "title": None, "model": None, "owner": "vp", "ts": iso(at(60))},
         {"id": "fail-1", "title": None, "model": None, "owner": "vp", "ts": iso(at(120))},
-        {"id": "other-job", "title": None, "model": None, "owner": "brain-atlas", "ts": iso(at(10))},
+        {"id": "other-job", "title": None, "model": None, "owner": "role-lead", "ts": iso(at(10))},
     ]
     found = detect(state, {"nodes": {}}, tmp_path, NOW, disk=False)
     pipes = [item for item in found if item["kind"] in ("pipe-parked", "pipe-failing")]

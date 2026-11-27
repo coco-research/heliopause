@@ -27,7 +27,7 @@ from atlas.events import board_event, board_mentions  # noqa: E402
 FIXTURE = ROOT / "tests" / "fixtures" / "home"
 ALIASES = json.loads(map_path("aliases.json").read_text(encoding="utf-8"))
 POSTERS = list(ALIASES)
-BRAINS = [name for name, node in ALIASES.items() if str(node).startswith("brain-")]
+BRAINS = [name for name, node in ALIASES.items() if str(node).startswith("role-")]
 SEP = " \u00b7 "
 NY = ZoneInfo("America/New_York")
 FALLBACK_POSTER = "Atlas Brain Agent"

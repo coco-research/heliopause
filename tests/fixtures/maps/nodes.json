@@ -1,10 +1,10 @@
 {
   "product-nimbus": "Nimbus",
-  "brain-courier": "CoCo Courier",
-  "brain-si": "Coco Mind",
-  "brain-teamsng": "Harbor",
-  "brain-connect-m0": "Connect + M0",
-  "brain-voice": "Coco Voice",
-  "brain-atlas": "Atlas",
-  "brain-keyring": "Keyring"
+  "role-scout": "CoCo Courier",
+  "role-reviewer": "Coco Mind",
+  "role-planner": "Harbor",
+  "role-ops": "Connect + M0",
+  "role-builder": "Coco Voice",
+  "role-lead": "Atlas",
+  "role-tester": "Keyring"
 }
