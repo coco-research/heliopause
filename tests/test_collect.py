@@ -62,8 +62,8 @@ def test_canonical_nodes_default_idle():
         "owner", "hq-cos", "hq-ceo", "hq-cpo", "hq-cto", "hq-cfo", "hq-coo", "hq-cmo", "hq-cso",
         "hq-cco", "hq-gc", "hq", "vp", "dept-engineering", "dept-design", "dept-research", "dept-budget",
         "dept-repo-office", "dept-lab-ops",
-        "product-nimbus", "brain-courier", "brain-si", "brain-teamsng", "brain-connect-m0",
-        "brain-voice", "brain-atlas", "brain-keyring", "factory-queue", "factory-grok",
+        "product-nimbus", "role-scout", "role-reviewer", "role-planner", "role-ops",
+        "role-builder", "role-lead", "role-tester", "factory-queue", "factory-grok",
         "factory-gemini", "factory-zcode", "github", "users",
     ]
     assert all(
@@ -73,7 +73,7 @@ def test_canonical_nodes_default_idle():
     assert all(node["id"] == node_id for node_id, node in snap["nodes"].items())
     for node_id in (
         "owner", "hq", "dept-budget", "dept-repo-office", "dept-lab-ops",
-        "brain-courier", "brain-si", "brain-connect-m0", "github", "users",
+        "role-scout", "role-reviewer", "role-ops", "github", "users",
     ):
         assert {k: snap["nodes"][node_id][k] for k in IDLE} == IDLE
 
@@ -88,8 +88,8 @@ def test_est_january_converts_to_utc():
 
 def test_zone_word_ignored_uses_new_york():
     # 15:00 EST written in September is still EDT (UTC-4), not a fixed UTC-5.
-    assert _snap()["nodes"]["brain-keyring"]["ts"] == "2026-09-30T19:00:00Z"
-    assert _snap()["nodes"]["brain-keyring"]["name"] == "Keyring Brain Agent"
+    assert _snap()["nodes"]["role-tester"]["ts"] == "2026-09-30T19:00:00Z"
+    assert _snap()["nodes"]["role-tester"]["name"] == "Keyring Brain Agent"
 
 
 def test_out_of_order_latest_instant_wins(tmp_path):
@@ -111,7 +111,7 @@ def test_out_of_order_latest_instant_wins(tmp_path):
 
 
 def test_tie_later_line_wins():
-    teams = _snap()["nodes"]["brain-teamsng"]
+    teams = _snap()["nodes"]["role-planner"]
     assert teams["status"] == "needs-vp"
     assert teams["ts"] == "2026-10-01T01:05:00Z"
     assert teams["name"] == "Harbor Brain"
@@ -119,7 +119,7 @@ def test_tie_later_line_wins():
 
 def test_text_keeps_internal_separator():
     snap = _snap()
-    teams = snap["nodes"]["brain-teamsng"]
+    teams = snap["nodes"]["role-planner"]
     # "#175" is a ticket, so the separator stays inside details.
     assert teams["headline"] is None
     assert teams["details"] == "PR #175 \u00b7 extra detail"
@@ -157,8 +157,8 @@ def test_role_suffix_maps_before_full_name(tmp_path):
 
 def test_alias_strip_and_casefold():
     snap = _snap()
-    assert snap["nodes"]["brain-atlas"]["name"] == "Atlas Brain Agent"
-    assert snap["nodes"]["brain-atlas"]["status"] == "working"
+    assert snap["nodes"]["role-lead"]["name"] == "Atlas Brain Agent"
+    assert snap["nodes"]["role-lead"]["status"] == "working"
     assert snap["nodes"]["product-nimbus"]["status"] == "done"
     assert snap["nodes"]["product-nimbus"]["ts"] == "2026-09-30T20:00:00Z"
     assert snap["nodes"]["product-nimbus"]["details"] == "case fold works"
@@ -166,8 +166,8 @@ def test_alias_strip_and_casefold():
 
 def test_unknown_state_and_name():
     snap = _snap()
-    assert snap["nodes"]["brain-voice"]["status"] == "unknown"
-    assert snap["nodes"]["brain-voice"]["details"] == "not a real state"
+    assert snap["nodes"]["role-builder"]["status"] == "unknown"
+    assert snap["nodes"]["role-builder"]["details"] == "not a real state"
     assert snap["other"] == [
         {
             "name": "Mystery Person",
@@ -286,7 +286,7 @@ def test_decisions_oldest_first():
         },
         {
             "kind": "board",
-            "node": "brain-teamsng",
+            "node": "role-planner",
             "status": "needs-vp",
             "ts": "2026-10-01T01:05:00Z",
             "headline": None,
@@ -463,8 +463,8 @@ def test_new_team_aliases(tmp_path):
     from atlas.collect import map_path
 
     aliases = json.loads(map_path("aliases.json").read_text(encoding="utf-8"))
-    assert aliases["Keyring Brain Agent"] == "brain-keyring"
-    assert aliases["Keyring Brain Agent"] == "brain-keyring"
+    assert aliases["Keyring Brain Agent"] == "role-tester"
+    assert aliases["Keyring Brain Agent"] == "role-tester"
     assert aliases["Repo Office"] == "dept-repo-office"
     assert aliases["Lab Ops"] == "dept-lab-ops"
     snap = _board(tmp_path, [
@@ -472,7 +472,7 @@ def test_new_team_aliases(tmp_path):
         ("2026-09-30 12:01 ET", "Repo Office", "blocked", "watching"),
         ("2026-09-30 12:02 ET", "Lab Ops", "done", "shipped"),
     ])
-    assert snap["nodes"]["brain-keyring"]["details"] == "spelling"
+    assert snap["nodes"]["role-tester"]["details"] == "spelling"
     assert snap["nodes"]["dept-repo-office"]["status"] == "blocked"
     assert snap["nodes"]["dept-lab-ops"]["details"] == "shipped"
 
@@ -483,9 +483,9 @@ def test_board_names_in_use_today(tmp_path):
 
     aliases = json.loads(map_path("aliases.json").read_text(encoding="utf-8"))
     assert aliases["Design"] == "dept-design"
-    assert aliases["Harbor"] == "brain-teamsng"
-    assert aliases["Connect + M0 Brain"] == "brain-connect-m0"
-    assert aliases["Atlas Brain"] == "brain-atlas"
+    assert aliases["Harbor"] == "role-planner"
+    assert aliases["Connect + M0 Brain"] == "role-ops"
+    assert aliases["Atlas Brain"] == "role-lead"
     snap = _board(tmp_path, [
         ("2026-10-04 18:00 ET", "Design", "done", "design line"),
         ("2026-10-04 18:01 ET", "Harbor", "working", "ng line"),
@@ -493,9 +493,9 @@ def test_board_names_in_use_today(tmp_path):
         ("2026-10-04 18:03 ET", "Atlas Brain", "done", "atlas line"),
     ])
     assert snap["nodes"]["dept-design"]["details"] == "design line"
-    assert snap["nodes"]["brain-teamsng"]["details"] == "ng line"
-    assert snap["nodes"]["brain-connect-m0"]["status"] == "blocked"
-    assert snap["nodes"]["brain-atlas"]["details"] == "atlas line"
+    assert snap["nodes"]["role-planner"]["details"] == "ng line"
+    assert snap["nodes"]["role-ops"]["status"] == "blocked"
+    assert snap["nodes"]["role-lead"]["details"] == "atlas line"
 
 
 def test_resolved_line_closes_gap_and_skips_poster():
@@ -938,7 +938,7 @@ def test_failed_item_owner_is_a_known_node_id(tmp_path):
     for name, sender in (("a", "Harbor Brain"), ("b", "claude"), ("c", "Nobody Known /home/x")):
         (failed / (name + ".md")).write_text(f"---\nid: {name}\nfrom: {sender}\n---\n# J\n", encoding="utf-8")
     items = snapshot(tmp_path)["bus"]["queue"]["failed_items"]
-    assert [item["owner"] for item in items] == ["brain-teamsng", "vp", "vp"]
+    assert [item["owner"] for item in items] == ["role-planner", "vp", "vp"]
 
 
 def test_failed_items_oldest_first_by_mtime(tmp_path):
@@ -1022,7 +1022,7 @@ def test_repos_prefer_the_lab_atlas_json(tmp_path, monkeypatch):
     )
     assert configured_repos() == ["alpha", "zeta"]
     got = load_config()
-    assert got["org"] == "lab-org" and got["repos"]["zeta"] == "lead" and "coco-atlas" not in got["repos"]
+    assert got["org"] == "lab-org" and got["repos"]["zeta"] == "lead" and "acme-web" not in got["repos"]
     (tmp_path / "other.json").write_text('{"repos": {"nope": "x"}}\n', encoding="utf-8")
     assert configured_repos(tmp_path / "other.json") == ["nope"]
     (tmp_path / "atlas.json").write_text(json.dumps({"repos": {"only": "lead"}}), encoding="utf-8")

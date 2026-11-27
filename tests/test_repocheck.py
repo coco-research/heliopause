@@ -14,7 +14,7 @@ from atlas.__main__ import LAB, LAB_DIR, make_server
 from atlas.github import allowed
 from atlas.repocheck import check
 
-CONFIG = {"org": "acme", "repos": {"good": "brain-atlas", "bad": "brain-si", "down": "vp", "odd": "brain-voice"}}
+CONFIG = {"org": "acme", "repos": {"good": "role-lead", "bad": "role-reviewer", "down": "vp", "odd": "role-builder"}}
 BLANK = {"readme": "not checked", "license": "not checked", "ci": "not checked", "protection": "not checked"}
 ROOT = Path(__file__).resolve().parents[1]
 GH_PY = """import sys

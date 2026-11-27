@@ -6,12 +6,12 @@
   "ops-departments-budget": "dept-budget",
   "ops-departments-repo-office": "dept-repo-office",
   "ops-departments-lab-ops": "dept-lab-ops",
-  "products-coco-courier": "brain-courier",
-  "products-coco": "brain-si",
-  "products-harbor-ng": "brain-teamsng",
-  "products-connect-m0": "brain-connect-m0",
-  "products-coco-voice": "brain-voice",
-  "products-coco-voice-repo": "brain-voice",
-  "products-coco-atlas": "brain-atlas",
-  "products-keyring": "brain-keyring"
+  "products-acme-mobile": "role-scout",
+  "products-coco": "role-reviewer",
+  "products-acme-planner": "role-planner",
+  "products-connect-m0": "role-ops",
+  "products-acme-audio": "role-builder",
+  "products-acme-audio-repo": "role-builder",
+  "products-acme-web": "role-lead",
+  "products-keyring": "role-tester"
 }

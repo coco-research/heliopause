@@ -52,13 +52,13 @@ _LABELS = {
     "dept-repo-office": "Repo Office",
     "dept-lab-ops": "Lab Ops",
     "product-nimbus": "Nimbus",
-    "brain-courier": "CoCo Courier",
-    "brain-si": "Coco Mind",
-    "brain-teamsng": "Harbor",
-    "brain-connect-m0": "Connect + M0",
-    "brain-voice": "Coco Voice",
-    "brain-atlas": "Atlas",
-    "brain-keyring": "Keyring",
+    "role-scout": "CoCo Courier",
+    "role-reviewer": "Coco Mind",
+    "role-planner": "Harbor",
+    "role-ops": "Connect + M0",
+    "role-builder": "Coco Voice",
+    "role-lead": "Atlas",
+    "role-tester": "Keyring",
     "factory-queue": "Queue Factory",
     "factory-grok": "Grok Build",
     "factory-gemini": "Antigravity",
@@ -185,11 +185,11 @@ def test_headline_passes_through(tmp_path):
         ("dept-design", {"status": "blocked", "ts": QUIET_28}, None, "quiet", "Quiet 1d 4h"),
         ("dept-research", {"status": "needs-hq", "ts": RECENT}, None, "waiting", "Waiting on HQ"),
         ("dept-research", {"status": "needs-hq", "ts": QUIET_28}, None, "quiet", "Quiet 1d 4h"),
-        ("brain-teamsng", {"status": "needs-vp", "ts": RECENT}, None, "waiting", "Waiting on VP"),
-        ("brain-teamsng", {"status": "needs-vp", "ts": QUIET_28}, None, "quiet", "Quiet 1d 4h"),
-        ("brain-voice", {"status": "unknown", "ts": None}, None, "idle", "Idle"),
-        ("brain-voice", {"status": "unknown", "ts": RECENT}, None, "idle", "Idle"),
-        ("brain-voice", {"status": "unknown", "ts": QUIET_28}, None, "quiet", "Quiet 1d 4h"),
+        ("role-planner", {"status": "needs-vp", "ts": RECENT}, None, "waiting", "Waiting on VP"),
+        ("role-planner", {"status": "needs-vp", "ts": QUIET_28}, None, "quiet", "Quiet 1d 4h"),
+        ("role-builder", {"status": "unknown", "ts": None}, None, "idle", "Idle"),
+        ("role-builder", {"status": "unknown", "ts": RECENT}, None, "idle", "Idle"),
+        ("role-builder", {"status": "unknown", "ts": QUIET_28}, None, "quiet", "Quiet 1d 4h"),
         ("dept-lab-ops", {"status": "done", "ts": QUIET_48}, None, "done", "Done"),
         ("github", {"status": "idle", "ts": QUIET_48}, None, "idle", "Idle"),
         (
@@ -303,16 +303,16 @@ def _chat(root, folder, age_s, name="s.jsonl"):
 
 def test_chat_active_is_signal_only(tmp_path):
     base = "-Users-someone-Alex-Doe-Coco-Research"
-    fresh = _chat(tmp_path, base + "-products-coco-atlas", 60)
+    fresh = _chat(tmp_path, base + "-products-acme-web", 60)
     _chat(tmp_path, base + "-ops-departments-design", 150)
     _chat(tmp_path, base + "-products-keyring", 600)
     plain = _graph(tmp_path / "empty")
     nodes = _graph(tmp_path)["nodes"]
-    assert nodes["brain-atlas"]["active"] is True
-    assert nodes["brain-atlas"]["chat_ts"] == fresh
+    assert nodes["role-lead"]["active"] is True
+    assert nodes["role-lead"]["chat_ts"] == fresh
     assert nodes["dept-design"]["active"] is False
     assert nodes["dept-design"]["chat_ts"] is not None
-    assert nodes["brain-keyring"]["active"] is False
+    assert nodes["role-tester"]["active"] is False
     assert nodes["vp"]["active"] is False
     assert nodes["vp"]["chat_ts"] is None
     for node_id, node in nodes.items():
@@ -392,11 +392,11 @@ def test_fibres_keep_newest_until_budget(tmp_path):
         ("Repo Office", "dept-repo-office"),
         ("Lab Ops", "dept-lab-ops"),
         ("Nimbus Brain", "product-nimbus"),
-        ("CoCo Courier Brain", "brain-courier"),
-        ("Coco Mind Brain", "brain-si"),
-        ("Harbor Brain", "brain-teamsng"),
-        ("Coco Voice Brain", "brain-voice"),
-        ("Atlas Brain Agent", "brain-atlas"),
+        ("CoCo Courier Brain", "role-scout"),
+        ("Coco Mind Brain", "role-reviewer"),
+        ("Harbor Brain", "role-planner"),
+        ("Coco Voice Brain", "role-builder"),
+        ("Atlas Brain Agent", "role-lead"),
     ]
     lines = []
     for index, (name, _node) in enumerate(pairs):

@@ -18,7 +18,7 @@ def test_mapping_newest_wins_and_ignores(tmp_path, monkeypatch):
     _jsonl(tmp_path, BASE, "a.jsonl", 1000)
     _jsonl(tmp_path, BASE, "b.jsonl", 2000)
     _jsonl(tmp_path, BASE, "notes.txt", 9000)
-    _jsonl(tmp_path, BASE + "-products-coco-atlas", "a.jsonl", 3000)
+    _jsonl(tmp_path, BASE + "-products-acme-web", "a.jsonl", 3000)
     _jsonl(tmp_path, BASE + "-products-coco", "a.jsonl", 4000)
     _jsonl(tmp_path, BASE + "-ops-departments-design", "a.jsonl", 5000)
     _jsonl(tmp_path, BASE + "-products-coco", "subagents/x.jsonl", 9999)
@@ -32,8 +32,8 @@ def test_mapping_newest_wins_and_ignores(tmp_path, monkeypatch):
     monkeypatch.setattr(Path, "read_bytes", banned)
     assert chat_activity(tmp_path) == {
         "vp": 2000,
-        "brain-atlas": 3000,
-        "brain-si": 4000,
+        "role-lead": 3000,
+        "role-reviewer": 4000,
         "dept-design": 5000,
     }
 

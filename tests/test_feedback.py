@@ -4,7 +4,7 @@ import stat
 from test_alerts import BASE, get, post
 from test_write import call, served, token_of
 
-GOOD = {"kind": "decision-waiting", "subject": "decision-waiting:brain-atlas", "verdict": "useful"}
+GOOD = {"kind": "decision-waiting", "subject": "decision-waiting:role-lead", "verdict": "useful"}
 
 
 def send(server, body, **extra):
@@ -14,7 +14,7 @@ def send(server, body, **extra):
     return status, json.loads(raw)
 
 
-def vote(server, kind="decision-waiting", subject="decision-waiting:brain-atlas", verdict="useful", **extra):
+def vote(server, kind="decision-waiting", subject="decision-waiting:role-lead", verdict="useful", **extra):
     return send(server, {"kind": kind, "subject": subject, "verdict": verdict}, **extra)
 
 
@@ -70,12 +70,12 @@ def test_text_is_never_stored(tmp_path):
 
 def test_stores_exactly_four_fields_at_0600(tmp_path):
     with served(tmp_path) as server:
-        assert vote(server, "ci-red", "ci-red:coco-atlas#108", "not-useful") == (201, {"ok": True})
+        assert vote(server, "ci-red", "ci-red:acme-web#108", "not-useful") == (201, {"ok": True})
         assert stat.S_IMODE((tmp_path / ".atlas" / "feedback.jsonl").stat().st_mode) == 0o600
         (row,) = stored(tmp_path)
         assert list(row) == ["ts", "kind", "subject", "verdict"]
         assert isinstance(row["ts"], int) and not isinstance(row["ts"], bool)
-        assert (row["kind"], row["subject"], row["verdict"]) == ("ci-red", "ci-red:coco-atlas#108", "not-useful")
+        assert (row["kind"], row["subject"], row["verdict"]) == ("ci-red", "ci-red:acme-web#108", "not-useful")
 
 
 def test_summary_counts_and_latest_wins(tmp_path):

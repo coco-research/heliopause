@@ -78,9 +78,9 @@ def one(found):
     [("needs-owner", "owner", "high"), ("needs-vp", "vp", "medium"), ("needs-hq", "hq", "medium")],
 )
 def test_decision_waiting_fires(status, owner, severity):
-    state = make_state({"brain-atlas": {"status": status, "ts": ago(hours=5), "headline": "Need a call on scope"}})
+    state = make_state({"role-lead": {"status": status, "ts": ago(hours=5), "headline": "Need a call on scope"}})
     problem = one(decision_waiting(state, GRAPH, NOW))
-    assert problem["id"] == "decision-waiting:brain-atlas"
+    assert problem["id"] == "decision-waiting:role-lead"
     assert (problem["owner"], problem["severity"], problem["since"]) == (owner, severity, ago(hours=5))
     assert problem["next_action"] == "Answer or resolve it."
     assert problem["evidence"] == "Need a call on scope"
@@ -97,12 +97,12 @@ def test_decision_waiting_threshold_edge():
 
 def test_job_failed_fires_for_owner_and_falls_back():
     items = [
-        {"id": "job-1", "title": "Build it", "model": "grok", "owner": "brain-atlas", "ts": ago(hours=3)},
+        {"id": "job-1", "title": "Build it", "model": "grok", "owner": "role-lead", "ts": ago(hours=3)},
         {"id": "job-2", "title": None, "model": None, "owner": "vp", "ts": ago(hours=1)},
     ]
     found = job_failed(make_state(failed=items), GRAPH, NOW)
     assert [(p["id"], p["owner"], p["severity"]) for p in found] == [
-        ("job-failed:job-1", "brain-atlas", "high"),
+        ("job-failed:job-1", "role-lead", "high"),
         ("job-failed:job-2", "vp", "high"),
     ]
     assert [p["since"] for p in found] == [ago(hours=3), ago(hours=1)]
@@ -131,15 +131,15 @@ def test_hq_unanswered_ignores_board_rows():
 
 def test_quiet_threshold_edge():
     state = make_state({
-        "brain-atlas": {"status": "working", "ts": ago(hours=QUIET_H)},
-        "brain-voice": {"status": "blocked", "ts": ago(hours=QUIET_H, minutes=-1)},
-        "brain-si": {"status": "done", "ts": ago(hours=99)},
+        "role-lead": {"status": "working", "ts": ago(hours=QUIET_H)},
+        "role-builder": {"status": "blocked", "ts": ago(hours=QUIET_H, minutes=-1)},
+        "role-reviewer": {"status": "done", "ts": ago(hours=99)},
     })
     problem = one(quiet(state, GRAPH, NOW))
-    assert (problem["id"], problem["owner"], problem["severity"]) == ("quiet:brain-atlas", "brain-atlas", "low")
+    assert (problem["id"], problem["owner"], problem["severity"]) == ("quiet:role-lead", "role-lead", "low")
     assert problem["next_action"] == "Post your state or hand the work off."
-    unknown = make_state({"brain-si": {"status": "unknown", "ts": ago(hours=QUIET_H)}})
-    assert one(quiet(unknown, GRAPH, NOW))["id"] == "quiet:brain-si"
+    unknown = make_state({"role-reviewer": {"status": "unknown", "ts": ago(hours=QUIET_H)}})
+    assert one(quiet(unknown, GRAPH, NOW))["id"] == "quiet:role-reviewer"
 
 
 def test_quiet_skips_a_busy_pi_queue():
@@ -232,10 +232,10 @@ def test_detect_disk_false_never_returns_disk_low(monkeypatch):
 def busy_state():
     return make_state(
         {
-            "brain-atlas": {"status": "needs-vp", "ts": ago(hours=30)},
-            "brain-voice": {"status": "needs-owner", "ts": ago(hours=6)},
-            "brain-si": {"status": "needs-owner", "ts": ago(hours=10)},
-            "brain-courier": {"status": "working", "ts": ago(hours=50)},
+            "role-lead": {"status": "needs-vp", "ts": ago(hours=30)},
+            "role-builder": {"status": "needs-owner", "ts": ago(hours=6)},
+            "role-reviewer": {"status": "needs-owner", "ts": ago(hours=10)},
+            "role-scout": {"status": "working", "ts": ago(hours=50)},
         },
         decisions=[_ask("ask-9", 40)],
         failed=[{"id": "job-1", "title": "Build it", "model": None, "owner": "vp", "ts": ago(hours=12)}],
@@ -248,7 +248,7 @@ def test_job_failed_sorts_ahead_of_an_older_high():
         {"id": "job-9", "title": "Build it", "model": None, "owner": "vp", "ts": ago(hours=1)},
     ]
     found = detect(state, GRAPH, ROOT, NOW)
-    assert [p["id"] for p in found] == ["job-failed:job-9", "ci-red:coco-atlas#7"]
+    assert [p["id"] for p in found] == ["job-failed:job-9", "ci-red:acme-web#7"]
     assert found[0]["headline"] == "1 factory job failed"
     assert found[0]["since"] > found[1]["since"]
 
@@ -257,11 +257,11 @@ def test_detect_sorts_severity_then_oldest():
     found = detect(busy_state(), GRAPH, ROOT, NOW)
     assert [p["id"] for p in found] == [
         "job-failed:job-1",
-        "decision-waiting:brain-si",
-        "decision-waiting:brain-voice",
+        "decision-waiting:role-reviewer",
+        "decision-waiting:role-builder",
         "hq-unanswered:ask-9",
-        "decision-waiting:brain-atlas",
-        "quiet:brain-courier",
+        "decision-waiting:role-lead",
+        "quiet:role-scout",
     ]
     assert [p["severity"] for p in found] == ["high", "high", "high", "medium", "medium", "low"]
 
@@ -275,8 +275,8 @@ def test_ids_stable_across_calls():
 def test_problem_shape_and_no_leaks(monkeypatch):
     monkeypatch.setattr(problems.shutil, "disk_usage", lambda _root: shutil._ntuple_diskusage(10**12, 0, 5 * GB))
     state = busy_state()
-    state["nodes"]["brain-atlas"]["headline"] = "Review coco-research/coco#277 now"  # path-like: evidence drops it
-    state["nodes"]["brain-voice"]["headline"] = "key sk-ABCDEFGH1234 leaked"
+    state["nodes"]["role-lead"]["headline"] = "Review coco-research/coco#277 now"  # path-like: evidence drops it
+    state["nodes"]["role-builder"]["headline"] = "key sk-ABCDEFGH1234 leaked"
     found = detect(state, GRAPH, ROOT, NOW)
     assert {p["kind"] for p in found} == {"decision-waiting", "job-failed", "hq-unanswered", "quiet", "disk-low"}
     for problem in found:
@@ -290,7 +290,7 @@ def test_problem_shape_and_no_leaks(monkeypatch):
     assert json.dumps(found)
 
 
-def pr(number=7, checks="green", days=0, title="Add thing", repo="coco-atlas", node="brain-atlas"):
+def pr(number=7, checks="green", days=0, title="Add thing", repo="acme-web", node="role-lead"):
     return {"repo": repo, "node": node, "number": number, "title": title, "checks": checks,
             "updated": (NOW - timedelta(days=days)).strftime("%Y-%m-%dT%H:%M:%SZ")}
 
@@ -304,9 +304,9 @@ def with_github(*prs, stale=False):
 def test_ci_red_fires_only_on_red():
     state = with_github(pr(7, "red"), pr(8, "green"), pr(9, "pending"), pr(10, "none"))
     problem = one(ci_red(state, GRAPH, NOW))
-    assert problem["id"] == "ci-red:coco-atlas#7"
-    assert (problem["owner"], problem["severity"], problem["since"]) == ("brain-atlas", "high", pr()["updated"])
-    assert problem["headline"] == "CI red on coco-atlas #7" and len(problem["headline"]) <= 60
+    assert problem["id"] == "ci-red:acme-web#7"
+    assert (problem["owner"], problem["severity"], problem["since"]) == ("role-lead", "high", pr()["updated"])
+    assert problem["headline"] == "CI red on acme-web #7" and len(problem["headline"]) <= 60
     assert problem["next_action"] == "Fix or re-run the failing check."
     assert problem["evidence"] == "Add thing"
 
@@ -316,9 +316,9 @@ def test_pr_stale_edge():
     state = with_github(pr(days=PR_STALE_DAYS, title="Old"))
     state["github"]["prs"][0]["updated"] = ago(hours=PR_STALE_DAYS * 24 + 1)
     problem = one(pr_stale(state, GRAPH, NOW))
-    assert problem["id"] == "pr-stale:coco-atlas#7"
-    assert (problem["owner"], problem["severity"]) == ("brain-atlas", "low")
-    assert problem["headline"] == "coco-atlas #7 untouched for 3d"
+    assert problem["id"] == "pr-stale:acme-web#7"
+    assert (problem["owner"], problem["severity"]) == ("role-lead", "low")
+    assert problem["headline"] == "acme-web #7 untouched for 3d"
     assert problem["next_action"] == "Review, merge or close it."
 
 
