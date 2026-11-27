@@ -98,12 +98,12 @@ def test_sort_priority_then_name():
 def test_real_headers_priority_node_date_and_skip():
     found, rows = _data(date(2026, 10, 5))
     assert rows["Coco Voice brain"]["priority"] == "P1"
-    assert rows["Coco Voice brain"]["node"] == "brain-voice"
+    assert rows["Coco Voice brain"]["node"] == "role-builder"
     assert rows["Coco Voice brain"]["name"] == "Coco Voice brain"
     assert rows["Coco Mind Brain"]["priority"] == "P1"
-    assert rows["Coco Mind Brain"]["node"] == "brain-si"
+    assert rows["Coco Mind Brain"]["node"] == "role-reviewer"
     assert rows["M0"]["priority"] == "P0"
-    assert rows["M0"]["node"] == "brain-connect-m0"
+    assert rows["M0"]["node"] == "role-ops"
     assert rows["M0"]["next_demo"] == {"date": "2026-10-09", "text": "bake-off report", "past": False}
     assert rows["M0"]["done"] == 1 and rows["M0"]["total"] == 3
     assert rows["Design Dept"]["priority"] == "P1"
@@ -111,11 +111,11 @@ def test_real_headers_priority_node_date_and_skip():
     assert rows["Research & Innovation"]["priority"] == "P1"
     assert rows["Research & Innovation"]["node"] == "dept-research"
     assert rows["Atlas"]["priority"] == "P2"
-    assert rows["Atlas"]["node"] == "brain-atlas"
+    assert rows["Atlas"]["node"] == "role-lead"
     assert rows["Keyring"]["priority"] == "P2"
-    assert rows["Keyring"]["node"] == "brain-keyring"
+    assert rows["Keyring"]["node"] == "role-tester"
     assert rows["CoCo Courier"]["priority"] == "P2"
-    assert rows["CoCo Courier"]["node"] == "brain-courier"
+    assert rows["CoCo Courier"]["node"] == "role-scout"
     assert rows["Nimbus Brain"]["priority"] == "P2"
     assert rows["Nimbus Brain"]["node"] == "product-nimbus"
     files = [row["file"] for row in found["rows"]]
@@ -134,8 +134,8 @@ def test_skips_template_lab_and_other_markdown():
     found, _rows = _data(date(2026, 10, 5))
     assert [row["file"] for row in found["rows"]] == [
         "m0.md",
-        "coco-mind.md",
-        "coco-voice.md",
+        "acme-core.md",
+        "acme-audio.md",
         "design.md",
         "research.md",
         "atlas.md",

@@ -1,4 +1,4 @@
-"""These are cross-tool conditions 2 and 3 and K7 (d) from Tess's ask-0456 terms read."""
+"""Static scans of the shipped tree: no mode-bypass flags, credential reads or trust-skipping flags."""
 
 from __future__ import annotations
 

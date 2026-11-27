@@ -943,11 +943,11 @@ def test_split_problems_runs():
         "const day = 86400000;"
         "function at(days) { return new Date(now - days * day).toISOString(); }"
         "const items = ["
-        "  { id: 'ci-red:coco-courier#157', kind: 'ci-red', since: at(8) },"
-        "  { id: 'pr-stale:coco-courier#157', kind: 'pr-stale', since: at(8) },"
-        "  { id: 'ci-red:coco-atlas#3', kind: 'ci-red', since: at(2) },"
+        "  { id: 'ci-red:acme-mobile#157', kind: 'ci-red', since: at(8) },"
+        "  { id: 'pr-stale:acme-mobile#157', kind: 'pr-stale', since: at(8) },"
+        "  { id: 'ci-red:acme-web#3', kind: 'ci-red', since: at(2) },"
         "  { id: 'job-failed:job-9', kind: 'job-failed', since: at(30) },"
-        "  { id: 'ci-red:coco-atlas#9', kind: 'ci-red', since: 'not-a-date' }"
+        "  { id: 'ci-red:acme-web#9', kind: 'ci-red', since: 'not-a-date' }"
         "];"
         "const out = splitProblems(items, now);"
         "console.log(JSON.stringify({"
@@ -957,9 +957,9 @@ def test_split_problems_runs():
         "}));"
     )
     out = json.loads(node_run(script, JS, capture_output=True, text=True, check=True).stdout)
-    assert out["stale"] == ["ci-red:coco-courier#157", "pr-stale:coco-courier#157"]
+    assert out["stale"] == ["ci-red:acme-mobile#157", "pr-stale:acme-mobile#157"]
     assert out["prs"] == 1
-    assert out["fresh"] == ["ci-red:coco-atlas#3", "job-failed:job-9", "ci-red:coco-atlas#9"]
+    assert out["fresh"] == ["ci-red:acme-web#3", "job-failed:job-9", "ci-red:acme-web#9"]
 
 
 @pytest.mark.skipif(shutil.which("node") is None, reason="node not installed")
@@ -987,7 +987,7 @@ def test_stale_pr_rows():
         "function labels(id) { return id === 'vp' ? 'VP' : id; }"
         "const red = staleRow(out.prRows[0], labels, now);"
         "const quiet = staleRow(out.prRows[1], labels, now);"
-        "const voice = staleRow({ subject: 'Coco-Voice#1', red: true, untouchedDays: null, owner: 'voice', since: at(12) }, labels, now);"
+        "const voice = staleRow({ subject: 'Acme-Audio#1', red: true, untouchedDays: null, owner: 'voice', since: at(12) }, labels, now);"
         "console.log(JSON.stringify({"
         "  prs: out.prs,"
         "  rows: out.prRows.map(function (row) {"
@@ -1010,7 +1010,7 @@ def test_stale_pr_rows():
     assert out["quiet"]["glyph"] == "\u25cb" and out["quiet"]["sev"] == "sev-stale"
     assert out["quiet"]["headline"] == "k #4 \u00b7 untouched 9d"
     assert out["quiet"]["label"] == "stale: k #4 \u00b7 untouched 9d, owner design, 9d"
-    assert out["voice"] == "Coco-Voice #1 \u00b7 CI red"
+    assert out["voice"] == "Acme-Audio #1 \u00b7 CI red"
 
 
 @pytest.mark.skipif(shutil.which("node") is None, reason="node not installed")
@@ -1085,14 +1085,14 @@ def test_page_ships_no_private_words():
     assert [n for n in normalised if n in text] == []
 
 
-# ---- orbs: Harbor's seeded avatar at v1.1 (harbor-ng#305) ----
+# ---- orbs: Harbor's seeded avatar at v1.1 (acme-planner#305) ----
 
 # Harbor orbModel.ts (v1.0, commit 1e557c4b) run as shipped, then frozen. Per id: fnv1a, the first draw of seed ^ 227, the animation
 # delay at 40px, then highlight x y, glow x y opacity and gradient radius to 3 places. v1.1 burns the old hue-step draw, so its
 # stream is v1.0's again and an unplanned orb's geometry is still these numbers. The v1.0 tones are retired with the palette.
 _NG_ORBS = {
     "vp": (1430905659, 0.07928814645856619, "-0.89", [28.493, 35.63, 72.517, 60.917, 0.306, 81.866]),
-    "brain-atlas": (1073189089, 0.1576895818579942, "-1.32", [81.689, 43.697, 22.914, 60.475, 0.374, 88.309]),
+    "role-lead": (1978807786, 0.7838389680255204, "-0.75", [72.194, 35.171, 28.384, 56.416, 0.329, 82.692]),
     "dept-design": (390821643, 0.7596478576306254, "-0.09", [75.029, 45.022, 20.518, 44.329, 0.407, 81.519]),
     "factory-pi": (541090075, 0.8242537698242813, "-0.36", [68.481, 22.342, 28.907, 68.637, 0.369, 89.265]),
     "github": (584874290, 0.3836398108396679, "-1.17", [64.341, 28.538, 33.818, 68.91, 0.396, 81.812]),
@@ -1105,7 +1105,7 @@ _NG_HARBOUR = [176, "hsl(176.0 60% 84.0%)", "hsl(176.0 60% 60.0%)", "hsl(176.0 6
 _SLOTS = [(176, 38), (248, 38), (320, 60), (176, 60), (248, 60), (320, 38), (212, 38), (212, 60), (284, 38), (284, 60)]
 _STEPS = [-4, 0, 4]
 
-# Harbor's server rule, re-typed from harbor-ng#305 (backend/app/employee_orb.py) so that a drift on either side fails here: one id
+# Harbor's server rule, re-typed from acme-planner#305 (backend/app/employee_orb.py) so that a drift on either side fails here: one id
 # has to be one orb in both products. Atlas's lanes share no node, so NG's `placed` and `blocked` rules (a member an earlier team
 # placed) never fire, and the slot walk below is only the per-team part of assign_orb_slots.
 _NG_SPREAD = (0, 7, 3, 5, 1, 6, 2, 4)
@@ -1311,12 +1311,12 @@ def test_orb_hash_and_stream_match_ng_runs():
         function ngFnv(s) { let h = 0x811c9dc5; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 0x01000193); } return h >>> 0; }
         function ngMul(seed) { let a = seed; return () => { a |= 0; a = (a + 0x6d2b79f5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a);
           t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
-        const probe = ['vp', 'owner', 'brain-atlas', 'dept-design', 'factory-pi', 'github', '', 'café'];
+        const probe = ['vp', 'owner', 'role-lead', 'dept-design', 'factory-pi', 'github', '', 'café'];
         const hash = probe.every((id) => api.fnv1a(id) === ngFnv(id));
         const draws = probe.every((id) => { const a = api.mulberry32(ngFnv(id) ^ 227), b = ngMul(ngFnv(id) ^ 227);
           return [1, 2, 3, 4, 5, 6, 7].every(() => a() === b()); });
         const rows = {}, r = (v) => +v.toFixed(3);
-        ['vp', 'brain-atlas', 'dept-design', 'factory-pi', 'github'].forEach((id) => {
+        ['vp', 'role-lead', 'dept-design', 'factory-pi', 'github'].forEach((id) => {
           const o = api.orbDraw(id, false);  // unplanned: the orb is its own seed
           rows[id] = [api.fnv1a(id), api.mulberry32(api.fnv1a(id) ^ 227)(), api.animationDelay(id, 40, 'working'),
             [r(o.highlight.x), r(o.highlight.y), r(o.glow.x), r(o.glow.y), r(o.glow.opacity), r(o.gradientRadius)]];
@@ -1346,7 +1346,7 @@ def test_orb_draw_is_seeded_runs():
         function ngFnv(s) { let h = 0x811c9dc5; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 0x01000193); } return h >>> 0; }
         const ids = Array.from({ length: 60 }, (_, i) => 'part-' + i);
         const j = (id, dark) => JSON.stringify(api.orbDraw(id, dark));
-        const names = ['owner', 'vp', 'hq-cos', 'dept-design', 'brain-atlas', 'factory-queue', 'github', 'users'];
+        const names = ['owner', 'vp', 'hq-cos', 'dept-design', 'role-lead', 'factory-queue', 'github', 'users'];
         console.log(JSON.stringify({
           seeded: ids.map((id) => [api.orbDraw(id, false).slot, ((ngFnv(id) ^ 227) >>> 0) % 10]),
           steps: Array.from(new Set(ids.map((id) => api.orbDraw(id, false).step))).sort((a, b) => a - b),
@@ -1735,7 +1735,7 @@ def test_orbs_show_honest_states_runs():
 @pytest.mark.skipif(shutil.which("node") is None, reason="node not installed")
 def test_orb_gradient_ids_are_unique_and_resolve_runs():
     out = _graph_node(r"""
-        const ids = ['owner', 'vp', 'brain-connect-m0', 'hq-cos', 'weird id (1)', 'a.b', 'a/b'];
+        const ids = ['owner', 'vp', 'role-ops', 'hq-cos', 'weird id (1)', 'a.b', 'a/b'];
         ids.forEach((id) => ['g', 't', 'f', 'p'].forEach((ctx) => [24, 40].forEach((size) => api.drawOrb(mk('div'), ctx, id, size))));
         const withId = dom.filter((n) => n.attrs.id), fills = dom.filter((n) => /^url\(#/.test(n.attrs.fill || ''));
         const have = new Set(withId.map((n) => n.attrs.id));

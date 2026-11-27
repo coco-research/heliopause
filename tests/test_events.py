@@ -495,8 +495,8 @@ def test_board_mentions_order_and_longest_name():
     event = board_event(line, "board:t")
     mentions = board_mentions(line, "board:t")
     assert [(item["from"], item["to"]) for item in mentions] == [
-        ("brain-atlas", "dept-design"),
-        ("brain-atlas", "factory-grok"),
+        ("role-lead", "dept-design"),
+        ("role-lead", "factory-grok"),
     ]
     assert [item["id"] for item in mentions] == [
         "board:t:m:dept-design",
@@ -577,9 +577,9 @@ def test_mention_watcher_matches_history(tmp_path):
     live, seq = watcher.events_after(0)
     assert [event["kind"] for event in live] == ["post", "mention", "mention"]
     assert [(event["from"], event["to"]) for event in live] == [
-        ("brain-atlas", "vp"),
-        ("brain-atlas", "dept-design"),
-        ("brain-atlas", "factory-grok"),
+        ("role-lead", "vp"),
+        ("role-lead", "dept-design"),
+        ("role-lead", "factory-grok"),
     ]
     assert watcher.events_after(seq) == ([], seq)
     now = datetime(2026, 10, 1, 14, 0, tzinfo=timezone.utc)

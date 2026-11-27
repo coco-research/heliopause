@@ -10,6 +10,8 @@ import shutil
 import socket
 import subprocess
 import sys
+import tempfile
+import time
 from pathlib import Path
 
 import pytest
@@ -27,28 +29,52 @@ def _need_tools() -> bool:
 
 
 def _agent_env(key: Path) -> dict[str, str]:
-    proc = subprocess.run(["ssh-agent", "-s"], check=True, capture_output=True, text=True)
+    # WHY: the default agent socket lives under $HOME or $TMPDIR; macOS caps unix socket paths at 104
+    # bytes, so a long TMPDIR breaks `ssh-agent`. Bind a short folder under /tmp instead.
+    sockdir = tempfile.mkdtemp(dir="/tmp", prefix="hp-ssh-")
     env: dict[str, str] = {}
-    for line in proc.stdout.splitlines():
-        item = line.split(";", 1)[0].strip()
-        if "=" not in item:
-            continue
-        name, value = item.split("=", 1)
-        if name in ("SSH_AUTH_SOCK", "SSH_AGENT_PID"):
-            env[name] = value
-    if "SSH_AUTH_SOCK" not in env or "SSH_AGENT_PID" not in env:
-        raise AssertionError(proc.stdout)
-    add = subprocess.run(
-        ["ssh-add", str(key)],
-        check=False,
-        capture_output=True,
-        text=True,
-        env={**os.environ, **env},
-    )
-    if add.returncode != 0:
+    try:
+        proc = subprocess.run(
+            ["ssh-agent", "-s", "-a", os.path.join(sockdir, "s")],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+        for line in proc.stdout.splitlines():
+            item = line.split(";", 1)[0].strip()
+            if "=" not in item:
+                continue
+            name, value = item.split("=", 1)
+            if name in ("SSH_AUTH_SOCK", "SSH_AGENT_PID"):
+                env[name] = value
+        if "SSH_AUTH_SOCK" not in env or "SSH_AGENT_PID" not in env:
+            raise AssertionError(proc.stdout)
+        add = subprocess.run(
+            ["ssh-add", str(key)],
+            check=False,
+            capture_output=True,
+            text=True,
+            env={**os.environ, **env},
+        )
+        if add.returncode != 0:
+            raise AssertionError(add.stderr or add.stdout)
+    except BaseException:
         _kill_agent(env)
-        raise AssertionError(add.stderr or add.stdout)
+        shutil.rmtree(sockdir, ignore_errors=True)
+        raise
     return env
+
+
+def _owned_socket_dir(sock: str) -> str | None:
+    if not sock:
+        return None
+    sockdir = os.path.dirname(sock)
+    if not os.path.basename(sockdir).startswith("hp-ssh-"):
+        return None
+    parent = os.path.dirname(sockdir)
+    if parent == "/tmp" or os.path.realpath(parent) == os.path.realpath("/tmp"):
+        return sockdir
+    return None
 
 
 def _kill_agent(env: dict[str, str]) -> None:
@@ -60,6 +86,9 @@ def _kill_agent(env: dict[str, str]) -> None:
         capture_output=True,
         text=True,
     )
+    sockdir = _owned_socket_dir(env.get("SSH_AUTH_SOCK", ""))
+    if sockdir is not None:
+        shutil.rmtree(sockdir, ignore_errors=True)
 
 
 def _exclude(text: str) -> tuple[list[str], list[str]]:
@@ -360,8 +389,6 @@ def test_release_zip_refuses_symlink(tmp_path: Path) -> None:
     assert (real_docs / "DECISIONS.md").read_text(encoding="utf-8") == "keep\n"
     assert not out.exists()
     assert proc.stdout == ""
-
-
 @pytest.mark.skipif(_need_tools(), reason="git, zip, unzip, shasum, or ssh-keygen missing")
 def test_release_zip_refuses_newline_name(tmp_path: Path) -> None:
     repo = tmp_path / "repo"
@@ -392,3 +419,76 @@ def test_release_zip_refuses_newline_name(tmp_path: Path) -> None:
     assert "newline" in proc.stderr
     assert not out.exists()
     assert proc.stdout == ""
+
+
+@pytest.mark.skipif(_need_tools(), reason="ssh-keygen, ssh-agent, or ssh-add missing")
+def test_agent_env_works_with_long_home_and_cleans_up(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    long_home = tmp_path / ("h" * 96)
+    long_home.mkdir()
+    monkeypatch.setenv("HOME", str(long_home))
+    key = tmp_path / "k"
+    subprocess.run(
+        ["ssh-keygen", "-t", "ed25519", "-N", "", "-q", "-f", str(key), "-C", "t"],
+        check=True,
+        capture_output=True,
+    )
+    agent = _agent_env(key)
+    sockdir = Path(os.path.dirname(agent["SSH_AUTH_SOCK"]))
+    pid = int(agent["SSH_AGENT_PID"])
+    try:
+        assert agent["SSH_AUTH_SOCK"].startswith("/tmp/hp-ssh-")
+        listed = subprocess.run(
+            ["ssh-add", "-l"],
+            env={**os.environ, **agent},
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        assert "ED25519" in listed.stdout
+    finally:
+        _kill_agent(agent)
+    assert not sockdir.exists()
+    deadline = time.monotonic() + 2.0
+    while True:
+        try:
+            os.kill(pid, 0)
+        except ProcessLookupError:
+            break
+        assert time.monotonic() < deadline, f"ssh-agent pid {pid} still alive after teardown"
+        time.sleep(0.02)
+
+
+def test_kill_agent_ignores_foreign_socket_dirs(tmp_path: Path) -> None:
+    foreign = tmp_path / "hp-ssh-foreign"
+    foreign.mkdir()
+    home_agent = tmp_path / ".ssh" / "agent"
+    home_agent.mkdir(parents=True)
+    for folder in (foreign, home_agent):
+        assert _owned_socket_dir(str(folder / "s")) is None
+        _kill_agent({"SSH_AUTH_SOCK": str(folder / "s")})
+        assert folder.exists()
+    assert _owned_socket_dir("/tmp/other/s") is None
+
+
+def test_agent_env_cleans_up_on_start_failure(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    created: list[str] = []
+    real_mkdtemp = tempfile.mkdtemp
+
+    def track_mkdtemp(*args, **kwargs):
+        path = real_mkdtemp(*args, **kwargs)
+        created.append(path)
+        return path
+
+    def fail_run(*args, **kwargs):
+        raise subprocess.CalledProcessError(1, ["ssh-agent"])
+
+    monkeypatch.setattr(tempfile, "mkdtemp", track_mkdtemp)
+    monkeypatch.setattr(subprocess, "run", fail_run)
+    with pytest.raises(subprocess.CalledProcessError):
+        _agent_env(tmp_path / "missing-key")
+    assert len(created) == 1
+    assert not Path(created[0]).exists()
