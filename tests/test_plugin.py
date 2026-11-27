@@ -248,7 +248,7 @@ def test_installed_hook_runs_without_shim(tmp_path: Path, monkeypatch) -> None:
     assert runtime.is_file()
     assert runtime.stat().st_mode & 0o777 == 0o600
     lab = _lab(tmp_path, lead="Ada")
-    (home / ".atlas" / "lab").write_text(str(lab) + "\n", encoding="utf-8")
+    (home / ".heliopause" / "lab").write_text(str(lab) + "\n", encoding="utf-8")
 
     def run(cwd: Path) -> subprocess.CompletedProcess[str]:
         env = os.environ.copy()
@@ -358,7 +358,7 @@ def test_apply_offers_plugin_install_as_its_own_question(tmp_path: Path, monkeyp
     assert "plugin" in prompts[0].lower()
     assert "command" in prompts[1].lower()
     assert not log.exists()
-    assert (home / ".atlas" / "lab").read_text(encoding="utf-8") == str(lab) + "\n"
+    assert (home / ".heliopause" / "lab").read_text(encoding="utf-8") == str(lab) + "\n"
     # The second prompt said no: the marketplace copy is not built either.
     assert not (home / "Heliopause" / "marketplace").exists()
 
@@ -369,7 +369,7 @@ def test_pointer_lab_is_used_when_atlas_lab_is_unset(tmp_path: Path, monkeypatch
     monkeypatch.setattr(Path, "home", lambda: home)
     monkeypatch.delenv("ATLAS_LAB", raising=False)
     lab = _lab(tmp_path, lead="Ada")
-    pointer = home / ".atlas"
+    pointer = home / ".heliopause"
     pointer.mkdir()
     (pointer / "lab").write_text(str(lab) + "\n", encoding="utf-8")
     monkeypatch.setattr(sys, "stdin", __import__("io").StringIO(json.dumps({"cwd": str(PLUGIN)})))
@@ -494,12 +494,12 @@ def test_host_install_status_update_uninstall_argv(tmp_path: Path, monkeypatch, 
     assert plugin.run(["install", "--host", "all", "--yes"]) == 0
     market_json = json.loads((market / ".claude-plugin" / "marketplace.json").read_text(encoding="utf-8"))
     assert market_json["autoUpdate"] is False
-    assert (home / ".atlas" / "plugin-hosts").read_text(encoding="utf-8") == "claude\ngrok\n"
+    assert (home / ".heliopause" / "plugin-hosts").read_text(encoding="utf-8") == "claude\ngrok\n"
     assert plugin.run(["status", "--host", "all"]) == 0
     assert plugin.after_switch() == 0
     assert plugin.run(["uninstall", "--host", "all"]) == 0
     assert not market.exists()
-    assert not (home / ".atlas" / "plugin-hosts").exists()
+    assert not (home / ".heliopause" / "plugin-hosts").exists()
     assert _argv_groups(log) == [
         ["claude", "plugin", "marketplace", "add", str(market)],
         ["claude", "plugin", "install", "heliopause@heliopause-local"],
@@ -536,7 +536,7 @@ def test_blocked_host_is_rules_only(tmp_path: Path, monkeypatch, capsys) -> None
     assert _argv_groups(log) == [
         ["claude", "plugin", "marketplace", "add", str(home / "Heliopause" / "marketplace")],
     ]
-    assert not (home / ".atlas" / "plugin-hosts").exists()
+    assert not (home / ".heliopause" / "plugin-hosts").exists()
 
 
 def test_plain_failure_does_not_write_rules(tmp_path: Path, monkeypatch) -> None:
@@ -598,7 +598,7 @@ def test_uninstall_keeps_the_copy_while_another_host_uses_it(tmp_path: Path, mon
     assert plugin.run(["install", "--host", "all", "--yes"]) == 0
     assert plugin.run(["uninstall", "--host", "claude"]) == 0
     assert market.is_dir()
-    assert (home / ".atlas" / "plugin-hosts").read_text(encoding="utf-8") == "grok\n"
+    assert (home / ".heliopause" / "plugin-hosts").read_text(encoding="utf-8") == "grok\n"
     assert plugin.run(["uninstall", "--host", "grok"]) == 0
     assert not market.exists()
 
@@ -743,4 +743,4 @@ def test_install_refusal_exits_1_and_keeps_the_marketplace(tmp_path: Path, monke
     assert "Traceback" not in captured.err
     assert sorted(p.name for p in market.iterdir()) == ["keep.txt"]
     assert not log.exists()
-    assert not (home / ".atlas" / "plugin-hosts").exists()
+    assert not (home / ".heliopause" / "plugin-hosts").exists()

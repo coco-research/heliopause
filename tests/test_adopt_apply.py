@@ -327,7 +327,7 @@ def test_uninstall_restores_merged_atlas_json_and_removes_the_pointer(tmp_path, 
     raw = b'{ "profile": "work", "update": "off" }\n'
     (lab / "atlas.json").write_bytes(raw)
     assert _apply(home, lab, "--lead-name", "Lead A") == 0
-    pointer = home / ".atlas" / "lab"
+    pointer = home / ".heliopause" / "lab"  # a fresh home has no ~/.atlas, so the new name is used
     assert pointer.is_file()
     assert pointer.read_text(encoding="utf-8").strip() == str(lab.resolve())
     assert (lab / "atlas.json").read_bytes() != raw
@@ -398,18 +398,18 @@ def test_apply_plan_lists_manifest_folders_and_lab_pointer(tmp_path, monkeypatch
     capsys.readouterr()
     code = adopt.run(["--apply", "--home", str(home), "--lab", str(lab), "--lead-name", "Ada"])
     out = capsys.readouterr().out
-    assert code == 1
-    assert out.splitlines()[-1] == "Nothing changed yet."
+    assert code == 2  # no terminal and no --yes
+    assert out.splitlines()[-1] == "Non-interactive terminal: re-run with --yes to apply. Nothing changed."
     assert "created .atlas/adopt-manifest.tsv" in out
     assert "created folders: " + ", ".join(_DIRS) in out
-    assert ".atlas/lab" in out
+    assert ".heliopause/lab" in out
     assert "first board line on board.md" in out
     assert (
         f"Backup: a new folder under {lab}/.atlas/backup/ (the exact path is printed when applied)"
         in out
     )
     assert not (lab / "board.md").exists()
-    assert not (home / ".atlas" / "lab").exists()
+    assert not (home / ".heliopause" / "lab").exists()
 
 
 def test_reapply_then_uninstall_returns_to_the_original(tmp_path, monkeypatch, capsys):
@@ -598,10 +598,12 @@ def test_apply_without_a_scan_asks_before_reading_transcripts(tmp_path, monkeypa
         monkeypatch.setattr("builtins.input", _raise(answer))
     elif answer is not None:
         monkeypatch.setattr("builtins.input", lambda prompt="": answer)
-    assert adopt.run(["--apply", "--home", str(home), "--lab", str(lab), "--lead-name", "Ada"]) == 1
+    assert adopt.run(["--apply", "--home", str(home), "--lab", str(lab), "--lead-name", "Ada"]) == (1 if tty else 2)
     out = capsys.readouterr().out
     assert "--apply scans first" in out and "chat transcripts" in out
-    assert out.splitlines()[-1] == "Nothing changed yet."
+    assert out.splitlines()[-1] == (
+        "Nothing changed yet." if tty else "Non-interactive terminal: re-run with --yes to apply. Nothing changed."
+    )
     assert not any(p.endswith(".jsonl") for p in opened)
     assert not (lab / ".atlas").exists()
     assert _snap(lab) == before_lab
@@ -640,5 +642,5 @@ def test_main_apply_refusal_exits_nonzero(tmp_path, monkeypatch):
     monkeypatch.setattr("sys.stdin.isatty", lambda: False)
     with pytest.raises(SystemExit) as exc:
         main(["adopt", "--apply", "--home", str(home), "--lab", str(lab)])
-    assert exc.value.code == 1
+    assert exc.value.code == 2
     assert not lab.exists()

@@ -13,7 +13,7 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
-from atlas import labfs
+from atlas import labfs, paths
 
 # After the Grok check, each hook script checks that it and its folder are yours and owner-only (no group or other bits).
 # WHY: settings.json runs these outside any agent sandbox, so they live in ~/.atlas/hooks, never in the lab.
@@ -50,12 +50,12 @@ if [ -n "${GROK_HOOK_EVENT:-}" ]; then
   }
   _gg_event=$(printf '%s' "$GROK_HOOK_EVENT" | LC_ALL=C tr -cd 'A-Za-z0-9_' | LC_ALL=C cut -c1-40) 2>/dev/null || true
   _gg_lab=
-  _gg_raw=$(_gg_trim "${ATLAS_LAB-}") 2>/dev/null || true
+  _gg_raw=$(_gg_trim "${HELIOPAUSE_LAB:-${ATLAS_LAB-}}") 2>/dev/null || true
   if [ -n "$_gg_raw" ]; then
     case "$_gg_raw" in
       /*) [ -f "$_gg_raw/atlas.json" ] && _gg_lab="$_gg_raw" ;;
     esac
-  elif [ -n "${HOME-}" ] && [ -r "${HOME}/.atlas/lab" ]; then
+  elif [ -n "${HOME-}" ] && { [ -r "${HOME}/.heliopause/lab" ] && _gg_ptr="${HOME}/.heliopause/lab" || { [ -r "${HOME}/.atlas/lab" ] && _gg_ptr="${HOME}/.atlas/lab"; }; }; then
     _gg_line=
     _gg_saw=
     while IFS= read -r _gg_line || [ -n "$_gg_line" ]; do
@@ -64,14 +64,18 @@ if [ -n "${GROK_HOOK_EVENT:-}" ]; then
         _gg_saw=1
         break
       fi
-    done < "${HOME}/.atlas/lab"
+    done < "$_gg_ptr"
     if [ -n "$_gg_saw" ]; then
       case "$_gg_line" in
         /*) [ -f "$_gg_line/atlas.json" ] && _gg_lab="$_gg_line" ;;
       esac
+    elif [ -f "${HOME}/heliopause-lab/atlas.json" ]; then
+      _gg_lab="${HOME}/heliopause-lab"
     elif [ -f "${HOME}/atlas-lab/atlas.json" ]; then
       _gg_lab="${HOME}/atlas-lab"
     fi
+  elif [ -n "${HOME-}" ] && [ -f "${HOME}/heliopause-lab/atlas.json" ]; then
+    _gg_lab="${HOME}/heliopause-lab"
   elif [ -n "${HOME-}" ] && [ -f "${HOME}/atlas-lab/atlas.json" ]; then
     _gg_lab="${HOME}/atlas-lab"
   fi
@@ -105,7 +109,7 @@ exit 0
 )
 
 # Relative to HOME. The folder and the scripts are 0700 and yours; labfs.HOME_TARGETS allows exactly these names.
-HOOKS_DIR = ".atlas/hooks"
+HOOKS_DIR = ".atlas/hooks"  # the legacy name; hooks_dir() is the one in use
 _NAMES = ("atlas-hook-start", "atlas-recall-hook")
 
 
@@ -114,10 +118,15 @@ def _lab_id(lab: Path) -> str:
     return hashlib.sha256(real.encode("utf-8", "surrogateescape")).hexdigest()[:12]
 
 
-def hook_rels(lab: Path) -> tuple[str, str]:
+def hooks_dir(cfg: str | None = None) -> str:
+    """The hooks folder relative to HOME: <config>/hooks ('.heliopause' for new installs, '.atlas' while that exists)."""
+    return f"{cfg or paths.config_rel()}/hooks"
+
+
+def hook_rels(lab: Path, cfg: str | None = None) -> tuple[str, str]:
     """(start, recall) hook script paths relative to HOME for this lab: one pair per lab."""
     ident = _lab_id(lab)
-    return tuple(f"{HOOKS_DIR}/{name}-{ident}" for name in _NAMES)  # type: ignore[return-value]
+    return tuple(f"{hooks_dir(cfg)}/{name}-{ident}" for name in _NAMES)  # type: ignore[return-value]
 
 
 def hook_commands(lab: Path) -> tuple[str, str]:
@@ -222,12 +231,12 @@ def _is_present(hook_groups: list, cmd_path: str) -> bool:
 
 def run(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="atlas hooks", description="Connect Claude Code hooks")
-    parser.add_argument("--lab", default="~/atlas-lab")
+    parser.add_argument("--lab", default=None, help="lab folder (default: ~/heliopause-lab, or an existing ~/atlas-lab)")
     parser.add_argument("--yes", action="store_true")
     parser.add_argument("--snippet", action="store_true")
     args = parser.parse_args(argv)
 
-    lab_dir = Path(args.lab).expanduser()
+    lab_dir = paths.lab_dir(args.lab)
     if not lab_dir.is_absolute():
         lab_dir = lab_dir.resolve()
     labfs.refuse_lab(lab_dir, "atlas hooks")
@@ -251,9 +260,9 @@ def run(argv: list[str] | None = None) -> int:
         s_root, s_rel = labfs.home(".claude/settings.json", lab=lab_dir)
         start_root, _ = labfs.home(start_rel, lab=lab_dir)
         labfs.home(recall_rel, lab=lab_dir)
-        hooks_st = labfs.lstat(home_root, HOOKS_DIR)
+        hooks_st = labfs.lstat(home_root, hooks_dir())
         if hooks_st is not None and (hooks_st.st_mode & 0o077 or hooks_st.st_uid != os.getuid()):
-            raise labfs.Refused(str(home_root / HOOKS_DIR), f"it must be yours and owner-only (mode {stat.S_IMODE(hooks_st.st_mode):o}; fix: chmod 700 ~/{HOOKS_DIR})")
+            raise labfs.Refused(str(home_root / hooks_dir()), f"it must be yours and owner-only (mode {stat.S_IMODE(hooks_st.st_mode):o}; fix: chmod 700 ~/{hooks_dir()})")
         raw = labfs.read(s_root, s_rel)
     except OSError as err:
         print(f"atlas hooks: {err}. Nothing written.", file=sys.stderr)
@@ -355,7 +364,7 @@ def run(argv: list[str] | None = None) -> int:
     elif changed and diff:
         if migrating:
             print(
-                f"atlas hooks: moving the hook scripts out of the lab, where agents can edit them, to ~/{HOOKS_DIR}/ "
+                f"atlas hooks: moving the hook scripts out of the lab, where agents can edit them, to ~/{hooks_dir()}/ "
                 f"(yours, 0700). The old {lab_dir}/bin entries are removed from {settings_path}; "
                 "the old scripts stay in the lab and nothing runs them."
             )
@@ -385,7 +394,7 @@ def run(argv: list[str] | None = None) -> int:
         batch = _Batch()
         try:
             if home_writes:
-                batch.make_dir(start_root, HOOKS_DIR, 0o700)
+                batch.make_dir(start_root, hooks_dir(), 0o700)
             for rel, text, mode in home_writes:
                 batch.write(start_root, rel, text, mode)
             if any(rel == "bin/atlas" for rel, _, _ in lab_writes):

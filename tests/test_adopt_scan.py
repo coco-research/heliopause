@@ -449,10 +449,10 @@ def test_apply_without_yes_leaves_the_lab_unwritten(tmp_path, capsys, monkeypatc
     before = settings.read_bytes()
     code = adopt.run(["--apply", "--lab", str(lab), "--home", str(home)])
     out = capsys.readouterr().out
-    assert code == 1 and "Nothing changed yet." in out
+    assert code == 2 and "Nothing changed." in out
     assert settings.read_bytes() == before
     assert not lab.exists()
     with pytest.raises(SystemExit) as exc:
         main(["adopt", "--apply", "--home", str(home), "--lab", str(lab)])
-    assert exc.value.code == 1
+    assert exc.value.code == 2
     assert not lab.exists()

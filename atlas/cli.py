@@ -13,6 +13,7 @@ from urllib.error import HTTPError
 from urllib.parse import urlencode, urlparse
 from urllib.request import HTTPRedirectHandler, ProxyHandler, Request, build_opener
 
+from atlas import paths
 from atlas.graph import _parse
 from atlas.problems import _ago
 
@@ -44,10 +45,17 @@ def _get(base: str, path: str, **query: str) -> object:
 
 
 def _token() -> str:
-    path = Path(os.environ.get("ATLAS_TOKEN_FILE", Path.home() / ".atlas" / "token")).expanduser()
-    try:
-        token = path.read_text(encoding="utf-8").strip()
-    except (OSError, UnicodeDecodeError):
+    # The server writes the token below its root, so a new install may keep it in either config folder.
+    explicit = os.environ.get("ATLAS_TOKEN_FILE")
+    found = [Path(explicit).expanduser()] if explicit else [paths.config_dir() / "token", Path.home() / ".atlas" / "token"]
+    token = ""
+    for path in found:
+        try:
+            token = path.read_text(encoding="utf-8").strip()
+            break
+        except (OSError, UnicodeDecodeError):
+            continue
+    if not token:
         return ""
     # Server tokens are printable ASCII. A control char (CR/LF split the headers; tab/NUL slip past http.client, and an
     # error that repr-escapes them defeats redaction) or non-ASCII (not sendable) makes the file unusable. Same as atlas-alert.
@@ -215,7 +223,14 @@ def main(argv: list[str] | None = None, prog: str = "heliopause") -> int:
     verbs.add_parser("claim").add_argument("id")
     verbs.add_parser("done").add_argument("id")
     verbs.add_parser("inbox").add_argument("--me", required=True)
+    migrate = verbs.add_parser("migrate", help="move ~/.atlas and ~/atlas-lab to ~/.heliopause and ~/heliopause-lab (never automatic)")
+    mode = migrate.add_mutually_exclusive_group()
+    mode.add_argument("--dry-run", action="store_true", help="print the plan and change nothing (the default)")
+    mode.add_argument("--apply", action="store_true", help="back up, then copy; needs --yes")
+    migrate.add_argument("--yes", action="store_true", help="confirm --apply")
     args = parser.parse_args(argv)
+    if args.verb == "migrate":
+        return paths.migrate_legacy_layout(apply=args.apply, yes=args.yes)
     if args.verb == "approve":
         return _approve(args)
     if args.verb == "brief" and args.status:

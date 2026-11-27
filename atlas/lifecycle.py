@@ -5,12 +5,12 @@ from datetime import datetime
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
-from atlas import labfs
+from atlas import labfs, paths
 
 _NEED = 200 * 1024 * 1024
 
-def _lab_dir(raw: str, prog: str = "atlas") -> Path:
-    path = Path(raw).expanduser()
+def _lab_dir(raw: str | None, prog: str = "atlas") -> Path:
+    path = paths.lab_dir(raw)
     path = path if path.is_absolute() else path.resolve()
     labfs.refuse_lab(path, prog)
     return path
@@ -74,7 +74,7 @@ def echo_job(lab: Path) -> bool:
 
 def _parser(prog: str, port: bool = False, removing: bool = False) -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog=prog)
-    parser.add_argument("--lab", default="~/atlas-lab")
+    parser.add_argument("--lab", default=None, help="lab folder (default: ~/heliopause-lab, or an existing ~/atlas-lab)")
     if port:
         parser.add_argument("--port", type=int, default=4300)
     if removing:
@@ -290,9 +290,11 @@ def _unhook(lab: Path) -> bool:
 
 def _drop_hook_scripts(lab: Path) -> None:
     """Remove this lab's scripts from ~/.atlas/hooks (and the folder when it is left empty)."""
-    from atlas.hooks import HOOKS_DIR, hook_rels
+    from atlas.hooks import hook_rels, hooks_dir
 
-    for rel in hook_rels(lab):
+    # Both config folders: an install made before a migrate lives in ~/.atlas/hooks.
+    cfgs = list(dict.fromkeys((paths.config_rel(), paths.LEGACY_CONFIG, paths.CONFIG)))
+    for rel in [r for cfg in cfgs for r in hook_rels(lab, cfg)]:
         try:
             root, name = labfs.home(rel, lab=lab)
             if labfs.unlink(root, name):
@@ -300,12 +302,13 @@ def _drop_hook_scripts(lab: Path) -> None:
         except OSError as err:
             print(f"atlas uninstall: left {Path.home() / rel} ({err})", file=sys.stderr)
     # Only empty folders go: ~/.atlas also holds the adopt pointer and the plugin copy when those are in use.
-    try:
-        root, _name = labfs.home(hook_rels(lab)[0], lab=lab)
-    except OSError:
-        return
-    if labfs.rmdir(root, HOOKS_DIR):
-        labfs.rmdir(root, ".atlas")
+    for cfg in cfgs:
+        try:
+            root, _name = labfs.home(hook_rels(lab, cfg)[0], lab=lab)
+        except OSError:
+            continue
+        if labfs.rmdir(root, hooks_dir(cfg)):
+            labfs.rmdir(root, cfg)
 
 def _confirm(yes: bool) -> bool:
     if yes:
@@ -331,7 +334,7 @@ def uninstall(argv: list[str] | None = None) -> int:
     print(f"plan: remove Heliopause hooks for {lab} from {Path.home() / '.claude' / 'settings.json'}")
     from atlas.hooks import hook_rels
 
-    for rel in hook_rels(lab):
+    for rel in [r for cfg in (paths.config_rel(), paths.LEGACY_CONFIG) for r in hook_rels(lab, cfg)]:
         if os.path.lexists(Path.home() / rel):
             print(f"plan: delete {Path.home() / rel}")
     if _has_decisions(lab) and not args.delete_decisions:

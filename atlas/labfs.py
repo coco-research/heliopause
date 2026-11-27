@@ -26,6 +26,8 @@ import tempfile
 import zipfile
 from pathlib import Path
 
+from atlas import paths
+
 _NOFOLLOW = getattr(os, "O_NOFOLLOW", 0)
 _CLOEXEC = getattr(os, "O_CLOEXEC", 0)
 _DIR = os.O_RDONLY | getattr(os, "O_DIRECTORY", 0) | _NOFOLLOW | _CLOEXEC
@@ -509,12 +511,12 @@ def lab_target(rel: str) -> str:
 # The only files in the home folder that Heliopause writes or removes (relative to HOME, full match).
 # Everything else under HOME is refused by home(). Keep this list short and say who writes each one.
 HOME_TARGETS = (
-    (r"\.atlas/lab", "adopt: the pointer to the last applied lab (plugin reads it)"),
-    (r"\.atlas/plugin-hosts", "plugin: which hosts the plugin was installed for"),
+    (r"\.(?:atlas|heliopause)/lab", "adopt: the pointer to the last applied lab (plugin reads it)"),
+    (r"\.(?:atlas|heliopause)/plugin-hosts", "plugin: which hosts the plugin was installed for"),
     (r"Heliopause/marketplace/[^/].*", "plugin: the local marketplace copy, rebuilt from this package"),
     (r"Heliopause/connectors/runtime", "plugin: where Python, Heliopause and the lab are, read by the Cursor hook script"),
-    (r"\.atlas/marketplace/[^/].*", "plugin: where 0.6 kept the marketplace copy; only removed now"),
-    (r"\.atlas/hooks/atlas-(?:hook-start|recall-hook)-[0-9a-f]{12}", "hooks: owner-only hook scripts that settings.json runs"),
+    (r"\.(?:atlas|heliopause)/marketplace/[^/].*", "plugin: where 0.6 kept the marketplace copy; only removed now"),
+    (r"\.(?:atlas|heliopause)/hooks/atlas-(?:hook-start|recall-hook)-[0-9a-f]{12}", "hooks: owner-only hook scripts that settings.json runs"),
     (r"\.claude/settings\.json", "hooks and uninstall: the Claude Code hooks registration"),
 )
 # Optional add-ons that are not in every build add their exact files here (allow_home), at import.
@@ -523,8 +525,8 @@ _ADDED_TARGETS: list = []
 
 def allow_home(pattern: str, who: str) -> None:
     """Add one HOME_TARGETS-style entry (a full-match pattern below ~/.atlas/hooks/) for an optional add-on."""
-    if not pattern.startswith(r"\.atlas/hooks/"):
-        raise ValueError("add-ons may only add files below ~/.atlas/hooks/")
+    if not pattern.startswith((r"\.atlas/hooks/", r"\.(?:atlas|heliopause)/hooks/")):
+        raise ValueError("add-ons may only add files below ~/.atlas/hooks/ or ~/.heliopause/hooks/")
     if (pattern, who) not in _ADDED_TARGETS:
         _ADDED_TARGETS.append((pattern, who))
 
@@ -616,14 +618,15 @@ def home(rel: str, *, lab: Path | None = None) -> tuple[Path, str]:
 def known_labs() -> list[str]:
     """Real paths of the labs this user has: $ATLAS_LAB, the ~/.atlas/lab pointer, ~/atlas-lab (existing folders)."""
     found: list[str] = []
-    candidates = [os.environ.get("ATLAS_LAB", "").strip()]
-    try:
-        pointer = read(Path.home(), ".atlas/lab", cap=4096)
-    except OSError:
-        pointer = None
-    if pointer:
-        candidates.append(pointer.decode("utf-8", "replace").strip().splitlines()[0].strip() if pointer.strip() else "")
-    candidates.append(str(Path.home() / "atlas-lab"))
+    candidates = [paths.lab_env()]
+    for name in (paths.CONFIG, paths.LEGACY_CONFIG):  # both pointers: a lab named by either one is protected
+        try:
+            pointer = read(Path.home(), f"{name}/lab", cap=4096)
+        except OSError:
+            pointer = None
+        if pointer:
+            candidates.append(pointer.decode("utf-8", "replace").strip().splitlines()[0].strip() if pointer.strip() else "")
+    candidates.extend(str(Path.home() / name) for name in (paths.LAB, paths.LEGACY_LAB))
     for raw in candidates:
         if not raw:
             continue
@@ -669,7 +672,7 @@ def lab_near(path: Path | str) -> str | None:
 
 
 # Folders a lab must stay clear of: what runs outside the agents' sandbox lives here (hooks, plugin, settings).
-PROTECTED = (".atlas", ".claude")
+PROTECTED = (".atlas", ".heliopause", ".claude")
 
 
 def check_lab(lab: Path | str) -> str:

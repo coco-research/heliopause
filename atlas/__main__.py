@@ -554,7 +554,9 @@ def main(argv: list[str] | None = None, prog: str = "heliopause") -> None:
         from atlas.kit import main as kit_main
 
         raise SystemExit(kit_main(args_list))
-    if args_list and args_list[0] in ("brief", "approve"):
+    if args_list and args_list[0] in (
+        "state", "problems", "who", "brief", "approve", "post", "handoff", "claim", "done", "inbox", "migrate",
+    ):
         from atlas.cli import main as cli_main
 
         raise SystemExit(cli_main(args_list, prog=prog))

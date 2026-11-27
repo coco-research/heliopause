@@ -23,7 +23,7 @@ import threading
 import time
 from pathlib import Path
 
-from atlas import labfs
+from atlas import labfs, paths
 
 _HEADER = (
     "# atlas.lock\n"
@@ -424,10 +424,7 @@ def read_lock(path: Path) -> dict:
 def _lab_path(lab: Path | None) -> Path:
     if lab is not None:
         return Path(lab).expanduser()
-    raw = os.environ.get("ATLAS_LAB")
-    if raw:
-        return Path(raw).expanduser()
-    return Path.home() / "atlas-lab"
+    return paths.lab_dir()
 
 
 def page_lock(root: Path) -> Path | None:
@@ -536,7 +533,7 @@ def _format_diff(report: dict) -> str:
 def diff(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="atlas diff")
     parser.add_argument("lock", nargs="?")
-    parser.add_argument("--lab", default=os.environ.get("ATLAS_LAB", "~/atlas-lab"))
+    parser.add_argument("--lab", default=str(paths.lab_dir()))
     args = parser.parse_args(argv)
     path = Path(args.lock).expanduser() if args.lock else _default_lock()
     if not path.is_file():
@@ -594,7 +591,7 @@ def _write_lock(dest: Path, lab: Path, data: bytes) -> None:
 def export(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="atlas export")
     parser.add_argument("--out", default="atlas.lock")
-    parser.add_argument("--lab", default=os.environ.get("ATLAS_LAB", "~/atlas-lab"))
+    parser.add_argument("--lab", default=str(paths.lab_dir()))
     args = parser.parse_args(argv)
     dest = Path(args.out).expanduser()
     lab = Path(args.lab).expanduser()
