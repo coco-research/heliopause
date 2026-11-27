@@ -8,7 +8,7 @@ import re
 import sys
 from pathlib import Path
 
-from atlas import roles
+from atlas import paths, roles
 
 _ROLES = ("hq", "lab", "factory")
 _OUTCOMES = frozenset(("done", "failed"))
@@ -26,7 +26,7 @@ def job_prompt(msg: dict) -> str:
     if roles.validate(msg) or msg.get("kind") != "job":
         raise ValueError("not a job")
     repo = msg["repo"] or "none"
-    command = f"cd ~/Heliopause && python3 -B -m atlas report {msg['id']} done|failed --tests pass|fail --lab ~/atlas-lab"
+    command = f"cd ~/Heliopause && python3 -B -m atlas report {msg['id']} done|failed --tests pass|fail --lab ~/{paths.default_lab().name}"
     return f"Job {msg['id']}: {msg['summary']}\nRepo: {repo}\nWhen done, run: {command}"
 
 
@@ -116,7 +116,7 @@ def accept_report(root, token: str, headers, rfile) -> tuple[int, dict]:
 
 
 def _lab_dir(explicit: str | None) -> Path | None:
-    raw = explicit or os.environ.get("ATLAS_LAB") or ""
+    raw = explicit or paths.lab_env()
     if not raw.strip():
         return None
     return Path(raw).expanduser()

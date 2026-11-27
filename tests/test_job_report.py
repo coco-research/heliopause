@@ -51,13 +51,13 @@ def test_job_prompt_is_three_lines() -> None:
     assert job_prompt(job) == (
         f"Job {job['id']}: Fix the gate\n"
         "Repo: atlas\n"
-        f"When done, run: cd ~/Heliopause && python3 -B -m atlas report {job['id']} done|failed --tests pass|fail --lab ~/atlas-lab"
+        f"When done, run: cd ~/Heliopause && python3 -B -m atlas report {job['id']} done|failed --tests pass|fail --lab ~/heliopause-lab"
     )
     bare = new_message("lab", "board", "factory", "job", "Quiet")
     assert job_prompt(bare) == (
         f"Job {bare['id']}: Quiet\n"
         "Repo: none\n"
-        f"When done, run: cd ~/Heliopause && python3 -B -m atlas report {bare['id']} done|failed --tests pass|fail --lab ~/atlas-lab"
+        f"When done, run: cd ~/Heliopause && python3 -B -m atlas report {bare['id']} done|failed --tests pass|fail --lab ~/heliopause-lab"
     )
     ask = new_message("lab", "board", "factory", "ask", "not a job")
     with pytest.raises(ValueError):

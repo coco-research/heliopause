@@ -34,6 +34,9 @@ export PATH=/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin
 # missing -B or a cache Atlas writes shows up as a HOME difference, the way a stranger would get it.
 unset PYTHONDONTWRITEBYTECODE
 unset ATLAS_LAB
+unset HELIOPAUSE_LAB
+unset ATLAS_HOME
+unset HELIOPAUSE_HOME
 PY="${PY:-/usr/bin/python3}"
 
 # a. Clone repo
@@ -113,7 +116,9 @@ if nodes != ["lead", "owner", "worker"]:
 from pathlib import Path
 import sys
 
-lab = Path(sys.argv[1]) / "atlas-lab"
+lab = Path(sys.argv[1]) / "heliopause-lab"
+if not lab.exists():
+    lab = Path(sys.argv[1]) / "atlas-lab"
 echoes = list((lab / "queue" / "done").glob("echo-*.md"))
 if not echoes:
     sys.exit("no echo job found in queue/done")

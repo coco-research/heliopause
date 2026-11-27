@@ -23,7 +23,7 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
-from atlas import __version__, connect, labfs
+from atlas import __version__, connect, labfs, paths
 
 _CONTEXT_MAX = 10000  # SessionStart additionalContext cap
 # ponytail: one read, not a stream. A bigger hook payload is ignored.
@@ -140,23 +140,19 @@ def _find_lab() -> Path | None:
 
 
 def _locate_lab() -> Path | None:
-    raw = os.environ.get("ATLAS_LAB", "").strip()
+    raw = paths.lab_env()
     if raw:
         path = Path(raw)
         if path.is_absolute() and (path / "atlas.json").is_file():
             return path
         return None
-    pointer = Path.home() / ".atlas" / "lab"
-    try:
-        text = pointer.read_text(encoding="utf-8").strip()
-    except (OSError, UnicodeError):
-        text = ""
+    text = paths.pointer_lab()
     if text:
-        path = Path(text.splitlines()[0].strip())
+        path = Path(text)
         if path.is_absolute() and (path / "atlas.json").is_file():
             return path
         return None
-    default = Path.home() / "atlas-lab"
+    default = paths.default_lab()
     if (default / "atlas.json").is_file():
         return default
     return None
@@ -476,7 +472,7 @@ def _host_cmd(host: str, argv: list[str]) -> tuple[int, bool]:
 
 
 def _hosts_path() -> Path:
-    return Path.home() / ".atlas" / "plugin-hosts"
+    return Path.home() / paths.config_rel() / "plugin-hosts"
 
 
 def _installed() -> list[str]:
@@ -492,7 +488,7 @@ def _installed() -> list[str]:
 def _save_hosts(names: list[str]) -> int:
     ordered = [name for name in ("claude", "grok") if name in set(names)]
     try:
-        root, rel = labfs.home(".atlas/plugin-hosts")
+        root, rel = labfs.home(f"{paths.config_rel()}/plugin-hosts")
         if not ordered:
             labfs.unlink(root, rel)
             return 0

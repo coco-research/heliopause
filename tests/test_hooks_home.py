@@ -133,7 +133,7 @@ def test_uninstall_restores_settings_at_0600_whatever_the_lab_backup_mode(box):
 def test_hook_scripts_live_owner_only_outside_the_lab(box):
     home, lab, _outside = box
     assert hooks.run(["--lab", str(lab), "--yes"]) == 0
-    folder = home / ".atlas" / "hooks"
+    folder = home / ".heliopause" / "hooks"
     assert stat.S_IMODE(folder.stat().st_mode) == 0o700 and folder.stat().st_uid == os.getuid()
     data = json.loads((home / ".claude" / "settings.json").read_text(encoding="utf-8"))
     commands = [h["command"] for groups in data["hooks"].values() for g in groups for h in g["hooks"]]
@@ -210,7 +210,7 @@ def test_hooks_migration_asks_first(box, monkeypatch):
     monkeypatch.setattr("builtins.input", lambda _prompt: "n")
     assert hooks.run(["--lab", str(lab)]) == 1
     assert settings.read_text(encoding="utf-8") == old
-    assert not (home / ".atlas" / "hooks").exists()
+    assert not (home / ".heliopause" / "hooks").exists()
 
 
 def test_uninstall_removes_this_labs_hook_scripts(box):
@@ -218,6 +218,6 @@ def test_uninstall_removes_this_labs_hook_scripts(box):
     home, lab, _outside = box
     assert hooks.run(["--lab", str(lab), "--yes"]) == 0
     assert lifecycle.uninstall(["--lab", str(lab), "--yes"]) == 0
-    assert not (home / ".atlas").exists()
+    assert not (home / ".heliopause").exists()
     assert "atlas-hook" not in (home / ".claude" / "settings.json").read_text(encoding="utf-8")
 

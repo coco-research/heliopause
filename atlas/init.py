@@ -7,7 +7,7 @@ from datetime import datetime
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
-from atlas import labfs
+from atlas import labfs, paths
 
 _TEMPLATE = Path(__file__).resolve().parent / "templates" / "solo"
 _DIRS = ("inbox", "done", "briefs", "queue/inbox", "queue/running", "queue/done", "queue/failed", "nodes", "decisions")
@@ -121,7 +121,7 @@ def _confirm(yes: bool) -> bool:
 
 def run(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="atlas init", description="Initialize a new lab folder")
-    parser.add_argument("--dir", default="~/atlas-lab")
+    parser.add_argument("--dir", default=None, help="new lab folder (default: ~/heliopause-lab)")
     parser.add_argument("--owner", default="Owner")
     parser.add_argument("--memory", action="store_true", help="install memory lite into the new lab (when this build includes it)")
     parser.add_argument("--yes", action="store_true", help="create the lab without the confirmation prompt")
@@ -131,7 +131,7 @@ def run(argv: list[str] | None = None) -> int:
         print(f"atlas init: invalid --owner {args.owner!r}", file=sys.stderr)
         raise SystemExit(2)
 
-    dest = Path(args.dir).expanduser()
+    dest = Path(args.dir).expanduser() if args.dir else paths.default_lab()
     labfs.refuse_lab(dest, "atlas init")
     if not _fresh(dest):
         print(f"atlas init: {dest} exists and is not empty, or is a symlink", file=sys.stderr)

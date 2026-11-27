@@ -1,4 +1,4 @@
-from atlas.__main__ import main
+from heliopause import main
 
 if __name__ == "__main__":
-    main(prog="heliopause")
+    main()
