@@ -372,3 +372,59 @@ def test_rollback_rename_failure_reports_leftover_paths_and_removal_command(lega
     assert _snap(legacy / ".atlas") == old_cfg_snap
     assert _snap(legacy / "atlas-lab") == old_lab_snap
     assert list(legacy.glob(".heliopause-backup-*"))
+
+
+def test_interrupt_mid_apply_with_failing_rollback_reports_leftovers_and_reraises(legacy, monkeypatch, capsys):
+    """On KeyboardInterrupt mid-apply, a failing rollback prints leftover paths and rm -rf before re-raising."""
+    monkeypatch.setenv("HOME", str(legacy))
+    old_cfg_snap = _snap(legacy / ".atlas")
+    old_lab_snap = _snap(legacy / "atlas-lab")
+    real_rename = labfs.rename_dir
+
+    def interrupt_then_fail_rollback(root, src, dst):
+        if str(dst) == paths.LAB:
+            raise KeyboardInterrupt()
+        if str(src) == paths.CONFIG:
+            raise OSError(16, "Device or resource busy", str(Path(root) / src))
+        return real_rename(root, src, dst)
+
+    monkeypatch.setattr(labfs, "rename_dir", interrupt_then_fail_rollback)
+    with pytest.raises(KeyboardInterrupt):
+        paths.migrate_legacy_layout(home=legacy, apply=True, yes=True)
+    err = capsys.readouterr().err
+    assert "KeyboardInterrupt" in err
+    assert "Rollback did not finish" in err
+    assert "no partial new folder was left behind" not in err
+    assert "~/.heliopause" in err
+    assert "rm -rf ~/.heliopause" in err
+    assert "Your old folders and the backup" in err
+    assert (legacy / ".heliopause").is_dir()
+    assert _snap(legacy / ".atlas") == old_cfg_snap
+    assert _snap(legacy / "atlas-lab") == old_lab_snap
+    assert list(legacy.glob(".heliopause-backup-*"))
+
+
+def test_corrupted_same_size_copy_fails_checksum_and_rolls_back(legacy, monkeypatch, capsys):
+    """A same-size corrupted copy is caught by _verify_copy's SHA-256 check and cleanly rolled back."""
+    monkeypatch.setenv("HOME", str(legacy))
+    old_cfg_snap = _snap(legacy / ".atlas")
+    old_lab_snap = _snap(legacy / "atlas-lab")
+    real_write = labfs.write
+
+    def corrupt_staged_file(root, rel, data, mode=None, *, new_only=False):
+        if str(rel).startswith(".heliopause-lab.migrating-") and data:
+            corrupted = bytes([data[0] ^ 0xFF]) + data[1:]
+            return real_write(root, rel, corrupted, mode, new_only=new_only)
+        return real_write(root, rel, data, mode, new_only=new_only)
+
+    monkeypatch.setattr(labfs, "write", corrupt_staged_file)
+    rc = paths.migrate_legacy_layout(home=legacy, apply=True, yes=True)
+    assert rc == 1
+    err = capsys.readouterr().err
+    assert "checksum mismatch" in err
+    assert "no partial new folder was left behind" in err
+    assert not (legacy / "heliopause-lab").exists()
+    assert not (legacy / ".heliopause").exists()
+    assert not [p for p in legacy.iterdir() if ".migrating-" in p.name]
+    assert _snap(legacy / ".atlas") == old_cfg_snap
+    assert _snap(legacy / "atlas-lab") == old_lab_snap
